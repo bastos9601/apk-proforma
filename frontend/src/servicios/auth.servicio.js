@@ -1,8 +1,9 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_ENDPOINTS } from '../config/api.config';
 
-// URL base de tu API - CAMBIAR según tu configuración
-const API_URL = 'http://10.89.85.82:3000/api/auth';
+// URL del endpoint de autenticación
+const API_URL = API_ENDPOINTS.auth;
 
 /**
  * Registrar nuevo usuario

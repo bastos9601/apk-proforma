@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { obtenerToken } from './auth.servicio';
+import { API_ENDPOINTS } from '../config/api.config';
 
-// URL base de tu API - CAMBIAR según tu configuración
-const API_URL = 'http://10.89.85.82:3000/api/imagenes';
+// URL del endpoint de imágenes
+const API_URL = API_ENDPOINTS.imagenes;
 
 /**
  * Subir imagen a Cloudinary a través del backend

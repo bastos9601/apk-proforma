@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { obtenerToken } from './auth.servicio';
+import { API_ENDPOINTS } from '../config/api.config';
 
-// URL base de tu API
-const API_URL = 'http://10.89.85.82:3000/api/configuracion';
+// URL del endpoint de configuración
+const API_URL = API_ENDPOINTS.configuracion;
 
 /**
  * Obtener headers con token de autenticación

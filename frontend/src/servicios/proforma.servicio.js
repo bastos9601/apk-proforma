@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { obtenerToken } from './auth.servicio';
+import { API_ENDPOINTS } from '../config/api.config';
 
-// URL base de tu API - CAMBIAR según tu configuración
-const API_URL = 'http://10.89.85.82:3000/api/proformas';
+// URL del endpoint de proformas
+const API_URL = API_ENDPOINTS.proformas;
 
 /**
  * Obtener headers con token de autenticación
