@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "BRADATEC Proformas",
-    "slug": "bradatec-proformas",
+    "name": "BRAPRO",
+    "slug": "brapro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,14 +16,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bradatec.proformas"
+      "bundleIdentifier": "com.bradatec.brapro"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.bradatec.proformas",
+      "package": "com.bradatec.brapro",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

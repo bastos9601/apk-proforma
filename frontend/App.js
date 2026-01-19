@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { AuthProvider, useAuth } from './src/contextos/Auth.contexto';
 
 // Pantallas
+import BienvenidaPantalla from './src/pantallas/Bienvenida.pantalla';
 import LoginPantalla from './src/pantallas/Login.pantalla';
 import RegistroPantalla from './src/pantallas/Registro.pantalla';
 import CrearProformaPantalla from './src/pantallas/CrearProforma.pantalla';
@@ -17,7 +18,16 @@ const Stack = createNativeStackNavigator();
 
 function AppNavigator() {
   const { estaAutenticado, cargando } = useAuth();
+  const [mostrarBienvenida, setMostrarBienvenida] = useState(true);
 
+  // Mostrar pantalla de bienvenida
+  if (mostrarBienvenida) {
+    return (
+      <BienvenidaPantalla onFinish={() => setMostrarBienvenida(false)} />
+    );
+  }
+
+  // Mostrar indicador de carga mientras se verifica autenticación
   if (cargando) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
