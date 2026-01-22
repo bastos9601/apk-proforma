@@ -23,6 +23,8 @@ export default function ConfiguracionPantalla({ navigation }) {
   const [ruc, setRuc] = useState('');
   const [logoUri, setLogoUri] = useState(null);
   const [logoUrl, setLogoUrl] = useState(null);
+  const [logoBcpUri, setLogoBcpUri] = useState(null);
+  const [logoBcpUrl, setLogoBcpUrl] = useState(null);
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('');
   const [email, setEmail] = useState('');
@@ -44,6 +46,7 @@ export default function ConfiguracionPantalla({ navigation }) {
       setRepresentante(config.representante || '');
       setRuc(config.ruc || '');
       setLogoUrl(config.logo_url || null);
+      setLogoBcpUrl(config.logo_bcp_url || null);
       setDireccion(config.direccion || '');
       setTelefono(config.telefono || '');
       setEmail(config.email || '');
@@ -82,6 +85,31 @@ export default function ConfiguracionPantalla({ navigation }) {
     }
   };
 
+  const seleccionarLogoBcp = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permiso necesario', 'Se necesita acceso a la galería');
+        return;
+      }
+
+      const resultado = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [3, 1],
+        quality: 0.8,
+      });
+
+      if (!resultado.canceled && resultado.assets && resultado.assets.length > 0) {
+        setLogoBcpUri(resultado.assets[0].uri);
+        Alert.alert('Éxito', 'Logo BCP seleccionado. Guarda los cambios para aplicar.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo seleccionar el logo BCP');
+    }
+  };
+
   const guardarCambios = async () => {
     if (!nombreEmpresa || !nombreSistema || !representante || !ruc) {
       Alert.alert('Error', 'Completa los campos obligatorios');
@@ -91,10 +119,16 @@ export default function ConfiguracionPantalla({ navigation }) {
     setGuardando(true);
     try {
       let urlLogo = logoUrl;
+      let urlLogoBcp = logoBcpUrl;
 
       // Si hay un nuevo logo, subirlo
       if (logoUri) {
         urlLogo = await subirImagen(logoUri);
+      }
+
+      // Si hay un nuevo logo BCP, subirlo
+      if (logoBcpUri) {
+        urlLogoBcp = await subirImagen(logoBcpUri);
       }
 
       const datos = {
@@ -103,6 +137,7 @@ export default function ConfiguracionPantalla({ navigation }) {
         representante: representante.trim(),
         ruc: ruc.trim(),
         logo_url: urlLogo,
+        logo_bcp_url: urlLogoBcp,
         direccion: direccion.trim(),
         telefono: telefono.trim(),
         email: email.trim(),
@@ -115,7 +150,9 @@ export default function ConfiguracionPantalla({ navigation }) {
       
       Alert.alert('Éxito', 'Configuración guardada correctamente');
       setLogoUrl(urlLogo);
+      setLogoBcpUrl(urlLogoBcp);
       setLogoUri(null);
+      setLogoBcpUri(null);
     } catch (error) {
       Alert.alert('Error', error.error || 'No se pudo guardar la configuración');
     } finally {
@@ -148,6 +185,23 @@ export default function ConfiguracionPantalla({ navigation }) {
           )}
         </TouchableOpacity>
         <Text style={estilos.ayuda}>El logo aparecerá en los PDFs de las proformas</Text>
+      </View>
+
+      <View style={estilos.seccion}>
+        <Text style={estilos.tituloSeccion}>Logo del Banco (BCP)</Text>
+        
+        <TouchableOpacity style={estilos.botonLogoBcp} onPress={seleccionarLogoBcp}>
+          {(logoBcpUri || logoBcpUrl) ? (
+            <Image 
+              source={{ uri: logoBcpUri || logoBcpUrl }} 
+              style={estilos.logoPreview} 
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={estilos.textoBotonLogo}>+ Seleccionar Logo BCP</Text>
+          )}
+        </TouchableOpacity>
+        <Text style={estilos.ayuda}>El logo del banco aparecerá en el footer del PDF junto a los datos bancarios</Text>
       </View>
 
       <View style={estilos.seccion}>
@@ -298,6 +352,14 @@ const estilos = StyleSheet.create({
   },
   botonLogo: {
     height: 150,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  botonLogoBcp: {
+    height: 100,
     backgroundColor: '#e5e7eb',
     borderRadius: 8,
     justifyContent: 'center',

@@ -1,6 +1,6 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 /**
  * Generar HTML para el PDF de la proforma (Estilo BRADATEC)
@@ -18,6 +18,7 @@ export const generarHTMLProforma = (proforma, detalles, nombreCliente = 'CLIENTE
   const cuentaBanco = config?.cuenta_banco || '480-77406530-0-76';
   const cci = config?.cci || '002-480-177406530076-25';
   const logoUrl = config?.logo_url || null;
+  const logoBcpUrl = config?.logo_bcp_url || null;
 
   let itemNumero = 1;
   const filasDetalles = detalles.map(detalle => {
@@ -206,41 +207,80 @@ export const generarHTMLProforma = (proforma, detalles, nombreCliente = 'CLIENTE
         .footer {
           display: flex;
           justify-content: space-between;
-          align-items: center;
+          align-items: flex-start;
           margin-top: 20px;
           padding-top: 15px;
-          border-top: 1px solid #ccc;
+          border-top: 2px solid #000;
         }
         .footer-left {
-          width: 45%;
+          width: 50%;
         }
         .company-footer {
           font-weight: bold;
-          font-size: 13px;
-          margin-bottom: 8px;
+          font-size: 14px;
+          margin-bottom: 10px;
+          text-align: center;
+          border: 2px solid #000;
+          padding: 8px;
+          background-color: #fff;
         }
-        .bank-info {
-          font-size: 9px;
-          line-height: 1.5;
+        .bank-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 10px;
+        }
+        .bank-table td {
+          border: 2px solid #000;
+          padding: 8px;
+          font-size: 11px;
+        }
+        .bank-logo-cell {
+          width: 120px;
+          background-color: #003b7a;
+          text-align: center;
+          vertical-align: middle;
+          padding: 10px;
         }
         .bank-logo {
-          width: 60px;
-          margin-top: 5px;
+          width: 100%;
+          height: auto;
+          max-width: 100px;
+          object-fit: contain;
+        }
+        .bank-label-cell {
+          width: 100px;
+          font-weight: bold;
+          background-color: #f0f0f0;
+          text-align: center;
+        }
+        .bank-value-cell {
+          background-color: #fff;
+          text-align: center;
         }
         .footer-right {
           width: 45%;
-          text-align: right;
+          text-align: left;
         }
         .contact-item {
-          margin-bottom: 5px;
-          font-size: 10px;
+          display: flex;
+          align-items: center;
+          margin-bottom: 12px;
+          font-size: 12px;
         }
         .contact-icon {
-          display: inline-block;
-          width: 20px;
-          height: 20px;
-          vertical-align: middle;
-          margin-right: 5px;
+          width: 28px;
+          height: 28px;
+          margin-right: 10px;
+          font-size: 24px;
+        }
+        .icon-maps {
+          color: #4285F4;
+        }
+        .icon-whatsapp {
+          color: #25D366;
+        }
+        .icon-gmail {
+          color: #EA4335;
         }
       </style>
     </head>
@@ -330,21 +370,36 @@ export const generarHTMLProforma = (proforma, detalles, nombreCliente = 'CLIENTE
       <div class="footer">
         <div class="footer-left">
           <div class="company-footer">${nombreEmpresa} S.R.L</div>
-          <div class="bank-info">
-            <strong>CTA. AHORROS</strong> &nbsp; ${cuentaBanco}<br>
-            <strong>CCI</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${cci}
-          </div>
+          
+          <table class="bank-table">
+            <tr>
+              ${logoBcpUrl ? `
+              <td class="bank-logo-cell" rowspan="2">
+                <img src="${logoBcpUrl}" class="bank-logo" alt="BCP" />
+              </td>
+              ` : ''}
+              <td class="bank-label-cell">CTA. AHORROS</td>
+              <td class="bank-value-cell">${cuentaBanco}</td>
+            </tr>
+            <tr>
+              <td class="bank-label-cell">CCI</td>
+              <td class="bank-value-cell">${cci}</td>
+            </tr>
+          </table>
         </div>
         
         <div class="footer-right">
           <div class="contact-item">
-            📍 <strong>${direccion}</strong>
+            <span class="contact-icon icon-maps">📍</span>
+            <strong>${direccion}</strong>
           </div>
           <div class="contact-item">
-            📱 <strong>${telefono}</strong>
+            <span class="contact-icon icon-whatsapp">📱</span>
+            <strong>${telefono}</strong>
           </div>
           <div class="contact-item">
-            ✉️ <strong>${email}</strong>
+            <span class="contact-icon icon-gmail">✉️</span>
+            <strong>${email}</strong>
           </div>
         </div>
       </div>
@@ -378,24 +433,47 @@ const convertirImagenABase64 = async (url) => {
  */
 export const generarPDF = async (proforma, detalles, nombreCliente = 'CLIENTE', config = null) => {
   try {
-    // Si hay logo, convertirlo a base64
-    let configConLogoBase64 = config;
-    if (config?.logo_url) {
-      const logoBase64 = await convertirImagenABase64(config.logo_url);
-      configConLogoBase64 = {
+    // Si hay logos, convertirlos a base64
+    let configConLogosBase64 = config;
+    if (config?.logo_url || config?.logo_bcp_url) {
+      const logoBase64 = config?.logo_url ? await convertirImagenABase64(config.logo_url) : null;
+      const logoBcpBase64 = config?.logo_bcp_url ? await convertirImagenABase64(config.logo_bcp_url) : null;
+      
+      configConLogosBase64 = {
         ...config,
-        logo_url: logoBase64 || config.logo_url
+        logo_url: logoBase64 || config?.logo_url,
+        logo_bcp_url: logoBcpBase64 || config?.logo_bcp_url
       };
     }
 
-    const html = generarHTMLProforma(proforma, detalles, nombreCliente, configConLogoBase64);
+    const html = generarHTMLProforma(proforma, detalles, nombreCliente, configConLogosBase64);
+    
+    // Generar nombre de archivo personalizado
+    const fecha = new Date(proforma.fecha);
+    const fechaFormato = `${fecha.getDate().toString().padStart(2, '0')}-${(fecha.getMonth() + 1).toString().padStart(2, '0')}-${fecha.getFullYear()}`;
+    const nombreClienteLimpio = nombreCliente
+      .replace(/[^a-zA-Z0-9\s]/g, '') // Eliminar caracteres especiales
+      .replace(/\s+/g, '_') // Reemplazar espacios con guiones bajos
+      .toUpperCase();
+    const numeroProforma = proforma.numero_proforma || proforma.id.substring(0, 6).toUpperCase();
+    const nombreArchivo = `Proforma_${numeroProforma}_${nombreClienteLimpio}_${fechaFormato}.pdf`;
     
     const { uri } = await Print.printToFileAsync({
       html,
       base64: false
     });
 
-    return uri;
+    // Renombrar el archivo con el nombre personalizado
+    const nuevoUri = FileSystem.documentDirectory + nombreArchivo;
+    await FileSystem.copyAsync({
+      from: uri,
+      to: nuevoUri
+    });
+    
+    // Eliminar el archivo temporal original
+    await FileSystem.deleteAsync(uri, { idempotent: true });
+    
+    return nuevoUri;
   } catch (error) {
     console.error('Error al generar PDF:', error);
     throw error;
@@ -405,22 +483,17 @@ export const generarPDF = async (proforma, detalles, nombreCliente = 'CLIENTE', 
 /**
  * Compartir PDF
  */
-export const compartirPDF = async (uri, nombreCliente = 'CLIENTE') => {
+export const compartirPDF = async (uri, nombreCliente = 'CLIENTE', proforma = null) => {
   try {
     const puedeCompartir = await Sharing.isAvailableAsync();
     
     if (puedeCompartir) {
-      // Crear nombre personalizado para compartir
-      const fechaActual = new Date().toISOString().split('T')[0];
-      const nombreClienteLimpio = nombreCliente
-        .replace(/[^a-zA-Z0-9\s]/g, '') // Eliminar caracteres especiales
-        .replace(/\s+/g, '_') // Reemplazar espacios con guiones bajos
-        .toUpperCase();
-      const nombreArchivo = `PROFORMA_${nombreClienteLimpio}_${fechaActual}.pdf`;
+      // Extraer el nombre del archivo de la URI
+      const nombreArchivo = uri.split('/').pop();
       
       await Sharing.shareAsync(uri, {
         mimeType: 'application/pdf',
-        dialogTitle: 'Compartir Proforma',
+        dialogTitle: `Compartir Proforma - ${nombreCliente}`,
         UTI: 'com.adobe.pdf',
         // El nombre sugerido al compartir
         suggestedName: nombreArchivo

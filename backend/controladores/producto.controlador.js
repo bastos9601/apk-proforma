@@ -217,6 +217,101 @@ const eliminarProducto = async (req, res) => {
 };
 
 /**
+ * Actualizar producto del catálogo propio
+ */
+const actualizarProducto = async (req, res) => {
+  try {
+    const usuarioId = req.usuario.id;
+    const { id } = req.params;
+    const { nombre, descripcion, precio, imagenUrl, sku } = req.body;
+    
+    // Validar datos
+    if (!nombre || !descripcion || !precio) {
+      return res.status(400).json({ 
+        error: 'Datos incompletos',
+        requeridos: ['nombre', 'descripcion', 'precio']
+      });
+    }
+    
+    // Actualizar producto
+    const { data, error } = await supabase
+      .from('catalogo_productos')
+      .update({
+        nombre,
+        descripcion,
+        precio: parseFloat(precio),
+        imagen_url: imagenUrl,
+        sku: sku || null
+      })
+      .eq('id', id)
+      .eq('usuario_id', usuarioId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    res.json({
+      mensaje: 'Producto actualizado',
+      producto: {
+        id: data.id,
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        precio: parseFloat(data.precio),
+        imagenUrl: data.imagen_url,
+        sku: data.sku
+      }
+    });
+  } catch (error) {
+    console.error('Error al actualizar producto:', error);
+    res.status(500).json({ 
+      error: 'Error al actualizar producto',
+      mensaje: error.message 
+    });
+  }
+};
+
+/**
+ * Obtener solo productos del catálogo propio
+ */
+const obtenerCatalogo = async (req, res) => {
+  try {
+    const usuarioId = req.usuario.id;
+    
+    // Obtener productos del catálogo propio
+    const { data: productosPropios, error } = await supabase
+      .from('catalogo_productos')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    // Formatear productos
+    const productosFormateados = productosPropios.map(p => ({
+      id: p.id,
+      nombre: p.nombre,
+      descripcion: p.descripcion,
+      precio: parseFloat(p.precio),
+      imagenUrl: p.imagen_url,
+      sku: p.sku,
+      origen: 'propio'
+    }));
+    
+    res.json({
+      mensaje: 'Catálogo obtenido exitosamente',
+      cantidad: productosFormateados.length,
+      productos: productosFormateados
+    });
+  } catch (error) {
+    console.error('Error al obtener catálogo:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener catálogo',
+      mensaje: error.message
+    });
+  }
+};
+
+/**
  * Obtener producto específico
  */
 const obtenerProducto = async (req, res) => {
@@ -264,6 +359,8 @@ module.exports = {
   buscarProductos,
   crearProducto,
   eliminarProducto,
+  actualizarProducto,
+  obtenerCatalogo,
   obtenerProducto,
   limpiarCacheProductos
 };

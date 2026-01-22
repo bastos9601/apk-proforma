@@ -7,7 +7,8 @@ import {
   FlatList,
   Alert,
   RefreshControl,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { obtenerProformas, eliminarProforma, obtenerProformaPorId } from '../servicios/proforma.servicio';
 import { cerrarSesion } from '../servicios/auth.servicio';
@@ -21,6 +22,7 @@ export default function HistorialProformasPantalla({ navigation }) {
   const [refrescando, setRefrescando] = useState(false);
   const [mostrarVistaPrevia, setMostrarVistaPrevia] = useState(false);
   const [htmlVistaPrevia, setHtmlVistaPrevia] = useState('');
+  const [generandoPDF, setGenerandoPDF] = useState(false);
 
   useEffect(() => {
     cargarProformas();
@@ -129,21 +131,26 @@ export default function HistorialProformasPantalla({ navigation }) {
   };
 
   const compartirProforma = async (proformaId) => {
-    setCargando(true);
+    setGenerandoPDF(true);
     try {
+      console.log('Iniciando compartir proforma:', proformaId);
+      
       // Obtener proforma completa con detalles
       const respuesta = await obtenerProformaPorId(proformaId);
       const proforma = respuesta.proforma;
+      console.log('Proforma obtenida:', proforma.id);
 
       // Obtener configuración
       let configuracion = null;
       try {
         const configResp = await obtenerConfiguracion();
         configuracion = configResp.configuracion;
+        console.log('Configuración obtenida');
       } catch (error) {
         console.log('Usando configuración por defecto');
       }
 
+      console.log('Generando PDF...');
       // Generar PDF
       const pdfUri = await generarPDF(
         proforma,
@@ -151,16 +158,22 @@ export default function HistorialProformasPantalla({ navigation }) {
         proforma.nombre_cliente || 'CLIENTE',
         configuracion
       );
+      console.log('PDF generado:', pdfUri);
 
+      console.log('Compartiendo PDF...');
       // Compartir PDF
       await compartirPDF(pdfUri, proforma.nombre_cliente || 'CLIENTE');
+      console.log('PDF compartido exitosamente');
 
-      Alert.alert('Éxito', 'PDF generado correctamente');
     } catch (error) {
-      console.error('Error:', error);
-      Alert.alert('Error', 'No se pudo generar el PDF');
+      console.error('Error completo al compartir:', error);
+      console.error('Error stack:', error.stack);
+      Alert.alert(
+        'Error', 
+        `No se pudo compartir el PDF: ${error.message || 'Error desconocido'}`
+      );
     } finally {
-      setCargando(false);
+      setGenerandoPDF(false);
     }
   };
 
@@ -221,6 +234,21 @@ export default function HistorialProformasPantalla({ navigation }) {
 
   return (
     <View style={estilos.contenedor}>
+      {/* Modal de carga para generar PDF */}
+      <Modal
+        visible={generandoPDF}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={estilos.modalCarga}>
+          <View style={estilos.modalCargaContenido}>
+            <ActivityIndicator size="large" color="#2563eb" />
+            <Text style={estilos.modalCargaTexto}>Generando PDF...</Text>
+            <Text style={estilos.modalCargaSubtexto}>Por favor espera</Text>
+          </View>
+        </View>
+      </Modal>
+
       {/* Vista Previa del PDF */}
       <VistaPreviaPDF
         visible={mostrarVistaPrevia}
@@ -421,4 +449,33 @@ const estilos = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
   },
+  modalCarga: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCargaContenido: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 30,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  modalCargaTexto: {
+    marginTop: 15,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  modalCargaSubtexto: {
+    marginTop: 5,
+    fontSize: 14,
+    color: '#6b7280',
+  },
 });
+

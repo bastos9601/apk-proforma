@@ -5,6 +5,8 @@ const {
   buscarProductos,
   crearProducto,
   eliminarProducto,
+  actualizarProducto,
+  obtenerCatalogo,
   obtenerProducto,
   limpiarCacheProductos
 } = require('../controladores/producto.controlador');
@@ -16,11 +18,17 @@ router.use(verificarToken);
 // Obtener todos los productos (propios + SEGO)
 router.get('/', obtenerProductos);
 
+// Obtener solo catálogo propio
+router.get('/catalogo', obtenerCatalogo);
+
 // Buscar productos (propios + SEGO)
 router.get('/buscar', buscarProductos);
 
 // Crear producto en catálogo propio
 router.post('/', crearProducto);
+
+// Actualizar producto del catálogo propio
+router.put('/:id', actualizarProducto);
 
 // Eliminar producto del catálogo propio
 router.delete('/:id', eliminarProducto);

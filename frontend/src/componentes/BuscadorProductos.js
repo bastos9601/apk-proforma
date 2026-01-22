@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,34 +11,52 @@ import {
   Modal,
   Alert
 } from 'react-native';
-import { buscarProductos } from '../servicios/producto.servicio';
+import { obtenerCatalogo, eliminarProductoCatalogo, actualizarProductoCatalogo } from '../servicios/producto.servicio';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function BuscadorProductos({ visible, onClose, onSeleccionar }) {
   const [busqueda, setBusqueda] = useState('');
-  const [resultados, setResultados] = useState([]);
+  const [productos, setProductos] = useState([]);
+  const [productosFiltrados, setProductosFiltrados] = useState([]);
   const [cargando, setCargando] = useState(false);
-  const [buscado, setBuscado] = useState(false);
+  const [editando, setEditando] = useState(null);
+  const [nombreEdit, setNombreEdit] = useState('');
+  const [precioEdit, setPrecioEdit] = useState('');
+  const [descripcionEdit, setDescripcionEdit] = useState('');
 
-  const buscar = async () => {
-    if (!busqueda.trim()) {
-      Alert.alert('Aviso', 'Ingresa un término de búsqueda');
-      return;
+  useEffect(() => {
+    if (visible) {
+      cargarCatalogo();
     }
+  }, [visible]);
 
+  useEffect(() => {
+    filtrarProductos();
+  }, [busqueda, productos]);
+
+  const cargarCatalogo = async () => {
     setCargando(true);
-    setBuscado(true);
     try {
-      const respuesta = await buscarProductos(busqueda);
-      setResultados(respuesta.productos || []);
-      
-      if (respuesta.productos.length === 0) {
-        Alert.alert('Sin resultados', 'No se encontraron productos con ese término');
-      }
+      const respuesta = await obtenerCatalogo();
+      setProductos(respuesta.productos || []);
     } catch (error) {
-      console.error('Error al buscar:', error);
-      Alert.alert('Error', error.error || 'No se pudo buscar productos');
+      console.error('Error al cargar catálogo:', error);
+      Alert.alert('Error', 'No se pudo cargar el catálogo');
     } finally {
       setCargando(false);
+    }
+  };
+
+  const filtrarProductos = () => {
+    if (!busqueda.trim()) {
+      setProductosFiltrados(productos);
+    } else {
+      const termino = busqueda.toLowerCase();
+      const filtrados = productos.filter(p =>
+        p.nombre.toLowerCase().includes(termino) ||
+        p.descripcion.toLowerCase().includes(termino)
+      );
+      setProductosFiltrados(filtrados);
     }
   };
 
@@ -50,48 +68,185 @@ export default function BuscadorProductos({ visible, onClose, onSeleccionar }) {
 
   const limpiar = () => {
     setBusqueda('');
-    setResultados([]);
-    setBuscado(false);
+    setEditando(null);
+    setNombreEdit('');
+    setPrecioEdit('');
+    setDescripcionEdit('');
   };
 
-  const renderProducto = ({ item }) => (
-    <TouchableOpacity
-      style={estilos.productoCard}
-      onPress={() => seleccionar(item)}
-    >
-      {item.imagenUrl ? (
-        <Image
-          source={{ uri: item.imagenUrl }}
-          style={estilos.productoImagen}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={estilos.productoImagenPlaceholder}>
-          <Text style={estilos.placeholderTexto}>Sin imagen</Text>
+  const iniciarEdicion = (producto) => {
+    setEditando(producto.id);
+    setNombreEdit(producto.nombre);
+    setPrecioEdit(producto.precio.toString());
+    setDescripcionEdit(producto.descripcion);
+  };
+
+  const cancelarEdicion = () => {
+    setEditando(null);
+    setNombreEdit('');
+    setPrecioEdit('');
+    setDescripcionEdit('');
+  };
+
+  const guardarEdicion = async () => {
+    if (!nombreEdit.trim() || !precioEdit || !descripcionEdit.trim()) {
+      Alert.alert('Error', 'Completa todos los campos');
+      return;
+    }
+
+    const precioNum = parseFloat(precioEdit);
+    if (isNaN(precioNum) || precioNum <= 0) {
+      Alert.alert('Error', 'Precio inválido');
+      return;
+    }
+
+    setCargando(true);
+    try {
+      await actualizarProductoCatalogo(editando, {
+        nombre: nombreEdit.trim(),
+        precio: precioNum,
+        descripcion: descripcionEdit.trim()
+      });
+
+      Alert.alert('Éxito', 'Producto actualizado');
+      cancelarEdicion();
+      cargarCatalogo();
+    } catch (error) {
+      Alert.alert('Error', error.error || 'No se pudo actualizar el producto');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const confirmarEliminar = (producto) => {
+    Alert.alert(
+      'Confirmar',
+      `¿Eliminar "${producto.nombre}" del catálogo?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => eliminar(producto.id)
+        }
+      ]
+    );
+  };
+
+  const eliminar = async (id) => {
+    setCargando(true);
+    try {
+      await eliminarProductoCatalogo(id);
+      Alert.alert('Éxito', 'Producto eliminado del catálogo');
+      cargarCatalogo();
+    } catch (error) {
+      Alert.alert('Error', error.error || 'No se pudo eliminar el producto');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const renderProducto = ({ item }) => {
+    const estaEditando = editando === item.id;
+
+    if (estaEditando) {
+      return (
+        <View style={estilos.productoCardEdit}>
+          <Text style={estilos.editTitulo}>Editar Producto</Text>
+          
+          <Text style={estilos.label}>Nombre</Text>
+          <TextInput
+            style={estilos.inputEdit}
+            value={nombreEdit}
+            onChangeText={setNombreEdit}
+            placeholder="Nombre del producto"
+          />
+
+          <Text style={estilos.label}>Precio (S/)</Text>
+          <TextInput
+            style={estilos.inputEdit}
+            value={precioEdit}
+            onChangeText={setPrecioEdit}
+            placeholder="0.00"
+            keyboardType="decimal-pad"
+          />
+
+          <Text style={estilos.label}>Descripción</Text>
+          <TextInput
+            style={[estilos.inputEdit, estilos.inputMultilinea]}
+            value={descripcionEdit}
+            onChangeText={setDescripcionEdit}
+            placeholder="Descripción del producto"
+            multiline
+            numberOfLines={3}
+          />
+
+          <View style={estilos.botonesEdit}>
+            <TouchableOpacity
+              style={estilos.botonCancelar}
+              onPress={cancelarEdicion}
+            >
+              <Text style={estilos.textoBoton}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={estilos.botonGuardar}
+              onPress={guardarEdicion}
+            >
+              <Text style={estilos.textoBoton}>Guardar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
-      
-      <View style={estilos.productoInfo}>
-        <Text style={estilos.productoNombre} numberOfLines={2}>
-          {item.nombre}
-        </Text>
-        <Text style={estilos.productoDescripcion} numberOfLines={2}>
-          {item.descripcion}
-        </Text>
-        <View style={estilos.productoFooter}>
-          <Text style={estilos.productoPrecio}>
-            {item.precioTexto || `S/ ${item.precio.toFixed(2)}`}
-          </Text>
-          <Text style={[
-            estilos.productoFuente,
-            item.origen === 'propio' && estilos.productoFuentePropio
-          ]}>
-            {item.origen === 'propio' ? '⭐ MI CATÁLOGO' : 'SEGO'}
-          </Text>
+      );
+    }
+
+    return (
+      <View style={estilos.productoCard}>
+        <TouchableOpacity
+          style={estilos.productoTouchable}
+          onPress={() => seleccionar(item)}
+        >
+          {item.imagenUrl ? (
+            <Image
+              source={{ uri: item.imagenUrl }}
+              style={estilos.productoImagen}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={estilos.productoImagenPlaceholder}>
+              <Ionicons name="image-outline" size={40} color="#9ca3af" />
+            </View>
+          )}
+          
+          <View style={estilos.productoInfo}>
+            <Text style={estilos.productoNombre} numberOfLines={2}>
+              {item.nombre}
+            </Text>
+            <Text style={estilos.productoDescripcion} numberOfLines={2}>
+              {item.descripcion}
+            </Text>
+            <Text style={estilos.productoPrecio}>
+              S/ {parseFloat(item.precio).toFixed(2)}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={estilos.botonesAccion}>
+          <TouchableOpacity
+            style={estilos.botonEditar}
+            onPress={() => iniciarEdicion(item)}
+          >
+            <Ionicons name="pencil" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={estilos.botonEliminar}
+            onPress={() => confirmarEliminar(item)}
+          >
+            <Ionicons name="trash" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <Modal
@@ -103,74 +258,63 @@ export default function BuscadorProductos({ visible, onClose, onSeleccionar }) {
       <View style={estilos.contenedor}>
         {/* Header */}
         <View style={estilos.header}>
-          <Text style={estilos.titulo}>Buscar Productos</Text>
+          <Text style={estilos.titulo}>Mi Catálogo</Text>
           <TouchableOpacity onPress={() => { limpiar(); onClose(); }}>
-            <Text style={estilos.cerrar}>✕</Text>
+            <Ionicons name="close" size={32} color="#fff" />
           </TouchableOpacity>
         </View>
 
         {/* Buscador */}
         <View style={estilos.buscadorContainer}>
+          <Ionicons name="search" size={20} color="#6b7280" style={estilos.iconoBuscar} />
           <TextInput
             style={estilos.input}
-            placeholder="Buscar en mi catálogo y SEGO"
+            placeholder="Buscar en mi catálogo..."
             value={busqueda}
             onChangeText={setBusqueda}
-            onSubmitEditing={buscar}
             returnKeyType="search"
           />
-          <TouchableOpacity
-            style={[estilos.botonBuscar, cargando && estilos.botonDeshabilitado]}
-            onPress={buscar}
-            disabled={cargando}
-          >
-            {cargando ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={estilos.textoBotonBuscar}>🔍</Text>
-            )}
-          </TouchableOpacity>
+          {busqueda.length > 0 && (
+            <TouchableOpacity onPress={() => setBusqueda('')}>
+              <Ionicons name="close-circle" size={20} color="#6b7280" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Resultados */}
         {cargando ? (
           <View style={estilos.centrado}>
             <ActivityIndicator size="large" color="#2563eb" />
-            <Text style={estilos.textoCargando}>Buscando productos...</Text>
-          </View>
-        ) : buscado && resultados.length === 0 ? (
-          <View style={estilos.centrado}>
-            <Text style={estilos.textoVacio}>😕</Text>
-            <Text style={estilos.textoVacioTitulo}>No se encontraron productos</Text>
-            <Text style={estilos.textoVacioSubtitulo}>
-              Intenta con otro término de búsqueda
-            </Text>
+            <Text style={estilos.textoCargando}>Cargando catálogo...</Text>
           </View>
         ) : (
           <FlatList
-            data={resultados}
+            data={productosFiltrados}
             renderItem={renderProducto}
-            keyExtractor={(item, index) => `${item.nombre}-${index}`}
+            keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={estilos.lista}
             ListHeaderComponent={
-              resultados.length > 0 ? (
+              productosFiltrados.length > 0 ? (
                 <View style={estilos.resultadosHeader}>
+                  <Ionicons name="star" size={16} color="#f59e0b" />
                   <Text style={estilos.resultadosTexto}>
-                    {resultados.length} producto{resultados.length !== 1 ? 's' : ''} encontrado{resultados.length !== 1 ? 's' : ''}
+                    {productosFiltrados.length} producto{productosFiltrados.length !== 1 ? 's' : ''} en tu catálogo
                   </Text>
                 </View>
               ) : null
             }
             ListEmptyComponent={
-              !buscado ? (
-                <View style={estilos.centrado}>
-                  <Text style={estilos.textoInicio}>🔍</Text>
-                  <Text style={estilos.textoInicioTitulo}>Busca productos</Text>
-                  <Text style={estilos.textoInicioSubtitulo}>
-                    Busca en tu catálogo propio y en SEGO
-                  </Text>
-                </View>
-              ) : null
+              <View style={estilos.centrado}>
+                <Ionicons name="folder-open-outline" size={80} color="#d1d5db" />
+                <Text style={estilos.textoVacioTitulo}>
+                  {busqueda ? 'No se encontraron productos' : 'Catálogo vacío'}
+                </Text>
+                <Text style={estilos.textoVacioSubtitulo}>
+                  {busqueda 
+                    ? 'Intenta con otro término de búsqueda'
+                    : 'Agrega productos desde "Navegar en Sego"'}
+                </Text>
+              </View>
             }
           />
         )}
@@ -191,71 +335,60 @@ const estilos = StyleSheet.create({
     backgroundColor: '#2563eb',
     padding: 20,
     paddingTop: 50,
+    elevation: 4,
   },
   titulo: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
-  cerrar: {
-    fontSize: 28,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
   buscadorContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     padding: 15,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+  iconoBuscar: {
     marginRight: 10,
   },
-  botonBuscar: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-    width: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  botonDeshabilitado: {
-    backgroundColor: '#93c5fd',
-  },
-  textoBotonBuscar: {
-    fontSize: 20,
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1f2937',
   },
   lista: {
     padding: 10,
   },
   resultadosHeader: {
-    padding: 10,
-    backgroundColor: '#eff6ff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#fef3c7',
     borderRadius: 8,
     marginBottom: 10,
   },
   resultadosTexto: {
     fontSize: 14,
-    color: '#1e40af',
+    color: '#92400e',
     fontWeight: '600',
+    marginLeft: 8,
   },
   productoCard: {
-    flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 10,
-    padding: 12,
     marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    overflow: 'hidden',
+  },
+  productoTouchable: {
+    flexDirection: 'row',
+    padding: 12,
   },
   productoImagen: {
     width: 80,
@@ -272,10 +405,6 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  placeholderTexto: {
-    fontSize: 10,
-    color: '#9ca3af',
-  },
   productoInfo: {
     flex: 1,
     justifyContent: 'space-between',
@@ -291,27 +420,87 @@ const estilos = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 8,
   },
-  productoFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   productoPrecio: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2563eb',
   },
-  productoFuente: {
-    fontSize: 11,
-    color: '#9ca3af',
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+  botonesAccion: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
   },
-  productoFuentePropio: {
-    backgroundColor: '#fef3c7',
-    color: '#92400e',
+  botonEditar: {
+    flex: 1,
+    backgroundColor: '#f59e0b',
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botonEliminar: {
+    flex: 1,
+    backgroundColor: '#ef4444',
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  productoCardEdit: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  editTitulo: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 5,
+    marginTop: 10,
+  },
+  inputEdit: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  inputMultilinea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  botonesEdit: {
+    flexDirection: 'row',
+    marginTop: 15,
+    gap: 10,
+  },
+  botonCancelar: {
+    flex: 1,
+    backgroundColor: '#6b7280',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  botonGuardar: {
+    flex: 1,
+    backgroundColor: '#10b981',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  textoBoton: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   centrado: {
@@ -325,32 +514,14 @@ const estilos = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
   },
-  textoVacio: {
-    fontSize: 60,
-    marginBottom: 15,
-  },
   textoVacioTitulo: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1f2937',
+    marginTop: 20,
     marginBottom: 8,
   },
   textoVacioSubtitulo: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  textoInicio: {
-    fontSize: 60,
-    marginBottom: 15,
-  },
-  textoInicioTitulo: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  textoInicioSubtitulo: {
     fontSize: 14,
     color: '#6b7280',
     textAlign: 'center',

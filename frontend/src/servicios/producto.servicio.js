@@ -80,3 +80,29 @@ export const eliminarProductoCatalogo = async (id) => {
     throw error.response?.data || { error: 'Error al eliminar producto' };
   }
 };
+
+/**
+ * Actualizar producto del catálogo propio
+ */
+export const actualizarProductoCatalogo = async (id, producto) => {
+  try {
+    const headers = await obtenerHeaders();
+    const respuesta = await axios.put(`${API_URL}/${id}`, producto, { headers });
+    return respuesta.data;
+  } catch (error) {
+    throw error.response?.data || { error: 'Error al actualizar producto' };
+  }
+};
+
+/**
+ * Obtener solo productos del catálogo propio
+ */
+export const obtenerCatalogo = async () => {
+  try {
+    const headers = await obtenerHeaders();
+    const respuesta = await axios.get(`${API_URL}/catalogo`, { headers });
+    return respuesta.data;
+  } catch (error) {
+    throw error.response?.data || { error: 'Error al obtener catálogo' };
+  }
+};
