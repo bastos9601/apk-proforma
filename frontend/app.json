@@ -4,12 +4,12 @@
     "slug": "brapro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/bradatec.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/bradatec.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#2563eb"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -20,18 +20,15 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/bradatec.png",
+        "backgroundColor": "#2563eb"
       },
       "package": "com.bradatec.brapro",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
@@ -40,6 +37,11 @@
           "photosPermission": "La app necesita acceso a tus fotos para agregar imágenes a las proformas."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9835bbf3-0b1a-4480-b131-eb304a3476c8"
+      }
+    }
   }
 }

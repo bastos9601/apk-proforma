@@ -3,7 +3,7 @@ const supabase = require('../configuracion/supabase');
 /**
  * Crear nueva proforma
  */
-const crearProforma = async (usuarioId, fecha, total, totalLetras, nombreCliente, descripcionServicio, pdfUrl = null) => {
+const crearProforma = async (usuarioId, fecha, total, totalLetras, nombreCliente, descripcionServicio, consideraciones = null, pdfUrl = null) => {
   const { data, error } = await supabase
     .from('proformas')
     .insert([
@@ -14,6 +14,7 @@ const crearProforma = async (usuarioId, fecha, total, totalLetras, nombreCliente
         total_letras: totalLetras,
         nombre_cliente: nombreCliente,
         descripcion_servicio: descripcionServicio,
+        consideraciones: consideraciones,
         pdf_url: pdfUrl
       }
     ])

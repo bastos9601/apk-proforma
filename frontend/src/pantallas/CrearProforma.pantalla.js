@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import VistaPreviaPDF from '../componentes/VistaPreviaPDF';
 
 export default function CrearProformaPantalla({ navigation }) {
   const [items, setItems] = useState([]);
+  const itemsRef = useRef([]);
   const [nombreCliente, setNombreCliente] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [cantidad, setCantidad] = useState('');
@@ -33,16 +34,57 @@ export default function CrearProformaPantalla({ navigation }) {
   const [mostrarVistaPrevia, setMostrarVistaPrevia] = useState(false);
   const [htmlVistaPrevia, setHtmlVistaPrevia] = useState('');
   const [descripcionServicio, setDescripcionServicio] = useState('Por la presente ponemos a su consideración la cotización de instalación y reubicación');
+  const [consideraciones, setConsideraciones] = useState(
+    '1. La garantía de componentes es de 1 año luego de la entrega de datos.\n' +
+    '2. La vigencia de la cotización es de 5 días a partir de la presente fecha por la varianza en el precio del dólar.\n' +
+    '3. El usuario deberá abonar el 50% de presupuesto.\n' +
+    '4. En caso de que el cliente no realice el pago total dentro de los 30 días posteriores a la finalización del trabajo, se aplicará un recargo del 30% sobre el monto total pendiente.'
+  );
+  const [incluirConsideraciones, setIncluirConsideraciones] = useState(true);
+
+  // Callback para recibir producto desde SegoWebView
+  const agregarProductoDesdeSego = (producto) => {
+    // Agregar directamente a la lista de items con cantidad 1
+    const nuevoItem = {
+      descripcion: producto.descripcion,
+      cantidad: 1,
+      precio: producto.precio,
+      total: producto.precio * 1,
+      imagenUri: producto.imagenUri,
+      imagenUrl: null // Se llenará al subir
+    };
+
+    // Actualizar tanto el estado como la referencia
+    const nuevosItems = [...itemsRef.current, nuevoItem];
+    itemsRef.current = nuevosItems;
+    setItems(nuevosItems);
+    
+    console.log('Producto agregado desde Sego:', producto.descripcion);
+    console.log('Total de items ahora:', nuevosItems.length);
+  };
 
   // Seleccionar producto de SEGO
   const seleccionarProductoSego = (producto) => {
     setDescripcion(producto.descripcion);
-    setPrecio(producto.precio.toString());
+    
+    // Si el producto tiene precio válido, usarlo
+    if (producto.precio && producto.precio > 0) {
+      setPrecio(producto.precio.toString());
+      Alert.alert('Producto seleccionado', `${producto.nombre} - S/ ${producto.precio.toFixed(2)}`);
+    } else {
+      // Si no tiene precio, dejar que el usuario lo ingrese
+      setPrecio('');
+      Alert.alert(
+        'Producto seleccionado', 
+        `${producto.nombre}\n\nPor favor ingresa el precio manualmente`,
+        [{ text: 'OK' }]
+      );
+    }
+    
     // Opcionalmente podrías descargar la imagen
     if (producto.imagenUrl) {
       setImagenUri(producto.imagenUrl);
     }
-    Alert.alert('Producto seleccionado', `${producto.nombre} - S/ ${producto.precio.toFixed(2)}`);
   };
 
   // Seleccionar imagen de la galería
@@ -291,7 +333,8 @@ export default function CrearProformaPantalla({ navigation }) {
         fecha: new Date().toISOString().split('T')[0],
         total,
         total_letras: totalLetras,
-        descripcion_servicio: descripcionServicio.trim()
+        descripcion_servicio: descripcionServicio.trim(),
+        consideraciones: incluirConsideraciones ? consideraciones.trim() : null
       };
 
       // Crear detalles temporales
@@ -357,6 +400,7 @@ export default function CrearProformaPantalla({ navigation }) {
         totalLetras,
         nombreCliente: nombreCliente.trim(),
         descripcionServicio: descripcionServicio.trim(),
+        consideraciones: incluirConsideraciones ? consideraciones.trim() : null,
         detalles: itemsConUrls.map(item => ({
           descripcion: item.descripcion,
           cantidad: item.cantidad,
@@ -438,6 +482,35 @@ export default function CrearProformaPantalla({ navigation }) {
           multiline
           numberOfLines={3}
         />
+
+        {/* Checkbox para incluir consideraciones */}
+        <TouchableOpacity
+          style={estilos.checkboxContainer}
+          onPress={() => setIncluirConsideraciones(!incluirConsideraciones)}
+          activeOpacity={0.7}
+        >
+          <View style={[estilos.checkbox, incluirConsideraciones && estilos.checkboxMarcado]}>
+            {incluirConsideraciones && (
+              <Text style={estilos.checkboxIcono}>✓</Text>
+            )}
+          </View>
+          <Text style={estilos.checkboxLabel}>Incluir Consideraciones en la proforma</Text>
+        </TouchableOpacity>
+
+        {/* Campo de consideraciones (solo visible si está activado) */}
+        {incluirConsideraciones && (
+          <>
+            <Text style={estilos.label}>Consideraciones</Text>
+            <TextInput
+              style={[estilos.input, estilos.inputConsideraciones]}
+              placeholder="1. La garantía de componentes..."
+              value={consideraciones}
+              onChangeText={setConsideraciones}
+              multiline
+              numberOfLines={6}
+            />
+          </>
+        )}
       </View>
 
       <View style={estilos.seccion}>
@@ -448,7 +521,17 @@ export default function CrearProformaPantalla({ navigation }) {
           style={estilos.botonSego}
           onPress={() => setMostrarBuscador(true)}
         >
-          <Text style={estilos.textoBotonSego}>🔍 Buscar en Catálogo SEGO</Text>
+          <Text style={estilos.textoBotonSego}>🔍 Buscar en Catálogo</Text>
+        </TouchableOpacity>
+
+        {/* Botón para abrir WebView de Sego */}
+        <TouchableOpacity
+          style={estilos.botonSegoWebView}
+          onPress={() => navigation.navigate('SegoWebView', { 
+            onAgregarProducto: agregarProductoDesdeSego 
+          })}
+        >
+          <Text style={estilos.textoBotonSegoWebView}>🌐 Navegar en Sego </Text>
         </TouchableOpacity>
 
         <View style={estilos.separador}>
@@ -603,7 +686,7 @@ const estilos = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -611,6 +694,23 @@ const estilos = StyleSheet.create({
     elevation: 3,
   },
   textoBotonSego: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  botonSegoWebView: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  textoBotonSegoWebView: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
@@ -658,6 +758,42 @@ const estilos = StyleSheet.create({
   inputMultilinea: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  inputConsideraciones: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+    fontSize: 13,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 15,
+    paddingVertical: 10,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#2563eb',
+    borderRadius: 4,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxMarcado: {
+    backgroundColor: '#2563eb',
+  },
+  checkboxIcono: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    color: '#374151',
+    fontWeight: '600',
+    flex: 1,
   },
   label: {
     fontSize: 14,

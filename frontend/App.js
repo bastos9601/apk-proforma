@@ -13,6 +13,7 @@ import CrearProformaPantalla from './src/pantallas/CrearProforma.pantalla';
 import HistorialProformasPantalla from './src/pantallas/HistorialProformas.pantalla';
 import VerProformaPantalla from './src/pantallas/VerProforma.pantalla';
 import ConfiguracionPantalla from './src/pantallas/Configuracion.pantalla';
+import SegoWebViewPantalla from './src/pantallas/SegoWebView.pantalla';
 
 const Stack = createNativeStackNavigator();
 
@@ -85,6 +86,11 @@ function AppNavigator() {
               name="Configuracion" 
               component={ConfiguracionPantalla}
               options={{ title: 'Configuración' }}
+            />
+            <Stack.Screen 
+              name="SegoWebView" 
+              component={SegoWebViewPantalla}
+              options={{ title: 'Navegador Sego', headerShown: false }}
             />
           </>
         )}

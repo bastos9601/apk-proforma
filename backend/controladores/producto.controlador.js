@@ -1,9 +1,13 @@
 const { 
-  obtenerProductosSego, 
+  obtenerProductosSego: obtenerProductosSegoBasico, 
   buscarProductosSego,
   obtenerProductoPorNombre,
-  limpiarCache
+  limpiarCache: limpiarCacheBasico
 } = require('../servicios/scraper.servicio');
+const { 
+  obtenerProductosSego: obtenerProductosSegoPro,
+  limpiarCache: limpiarCachePro
+} = require('../servicios/sego-pro.servicio');
 const supabase = require('../configuracion/supabase');
 
 /**
@@ -82,8 +86,21 @@ const buscarProductos = async (req, res) => {
     
     if (error) throw error;
     
-    // Buscar en SEGO
-    const productosSego = await buscarProductosSego(q);
+    // ✅ Buscar en SEGO usando servicio profesional optimizado
+    let productosSego = [];
+    try {
+      console.log('🚀 Usando servicio profesional de Sego...');
+      productosSego = await obtenerProductosSegoPro(q);
+    } catch (error) {
+      console.error('❌ Error con servicio profesional, usando fallback:', error.message);
+      // Fallback al scraper básico
+      try {
+        productosSego = await buscarProductosSego(q);
+      } catch (fallbackError) {
+        console.error('❌ Error con fallback:', fallbackError.message);
+        productosSego = [];
+      }
+    }
     
     // Formatear productos propios
     const productosFormateados = productosPropios.map(p => ({
@@ -226,7 +243,8 @@ const obtenerProducto = async (req, res) => {
  */
 const limpiarCacheProductos = async (req, res) => {
   try {
-    limpiarCache();
+    limpiarCachePro();
+    limpiarCacheBasico();
     
     res.json({
       mensaje: 'Caché limpiado exitosamente',

@@ -16,7 +16,7 @@ const {
  */
 const crear = async (req, res) => {
   try {
-    const { fecha, total, totalLetras, nombreCliente, descripcionServicio, detalles, pdfUrl } = req.body;
+    const { fecha, total, totalLetras, nombreCliente, descripcionServicio, consideraciones, detalles, pdfUrl } = req.body;
     const usuarioId = req.usuario.id;
 
     // Validaciones
@@ -34,6 +34,7 @@ const crear = async (req, res) => {
       totalLetras, 
       nombreCliente, 
       descripcionServicio || 'Por la presente ponemos a su consideración la cotización de instalación y reubicación',
+      consideraciones || null,
       pdfUrl
     );
 

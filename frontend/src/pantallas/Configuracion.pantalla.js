@@ -28,6 +28,7 @@ export default function ConfiguracionPantalla({ navigation }) {
   const [email, setEmail] = useState('');
   const [cuentaBanco, setCuentaBanco] = useState('');
   const [cci, setCci] = useState('');
+  const [tipoCambio, setTipoCambio] = useState('3.80'); // Tipo de cambio por defecto
 
   useEffect(() => {
     cargarConfiguracion();
@@ -48,6 +49,7 @@ export default function ConfiguracionPantalla({ navigation }) {
       setEmail(config.email || '');
       setCuentaBanco(config.cuenta_banco || '');
       setCci(config.cci || '');
+      setTipoCambio(config.tipo_cambio ? config.tipo_cambio.toString() : '3.80');
     } catch (error) {
       Alert.alert('Error', 'No se pudo cargar la configuración');
     } finally {
@@ -105,7 +107,8 @@ export default function ConfiguracionPantalla({ navigation }) {
         telefono: telefono.trim(),
         email: email.trim(),
         cuenta_banco: cuentaBanco.trim(),
-        cci: cci.trim()
+        cci: cci.trim(),
+        tipo_cambio: parseFloat(tipoCambio) || 3.80
       };
 
       await actualizarConfiguracion(datos);
@@ -235,6 +238,25 @@ export default function ConfiguracionPantalla({ navigation }) {
         />
       </View>
 
+      <View style={estilos.seccion}>
+        <Text style={estilos.tituloSeccion}>Tipo de Cambio (USD → Soles)</Text>
+        <Text style={estilos.ayuda}>
+          Este tipo de cambio se usará para convertir los precios de Sego de dólares a soles
+        </Text>
+        
+        <Text style={estilos.label}>Tipo de Cambio *</Text>
+        <TextInput
+          style={estilos.input}
+          placeholder="Ej: 3.80"
+          value={tipoCambio}
+          onChangeText={setTipoCambio}
+          keyboardType="decimal-pad"
+        />
+        <Text style={estilos.ayudaSmall}>
+          Ejemplo: Si el tipo de cambio es 3.80, un producto de $100 USD = S/ 380
+        </Text>
+      </View>
+
       <TouchableOpacity
         style={[estilos.botonGuardar, guardando && estilos.botonDeshabilitado]}
         onPress={guardarCambios}
@@ -295,6 +317,13 @@ const estilos = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     fontStyle: 'italic',
+    marginBottom: 10,
+  },
+  ayudaSmall: {
+    fontSize: 11,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginTop: 5,
   },
   label: {
     fontSize: 14,

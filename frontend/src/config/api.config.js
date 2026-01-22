@@ -3,8 +3,11 @@
  * Cambiar API_BASE_URL según el entorno
  */
 
-// URL del backend en Render
-export const API_BASE_URL = 'https://bradatec-backend.onrender.com';
+// URL del backend local (desarrollo)
+export const API_BASE_URL = 'http://10.89.85.82:3000';
+
+// URL del backend en Render (producción)
+// export const API_BASE_URL = 'https://bradatec-backend.onrender.com';
 
 // URLs de los endpoints
 export const API_ENDPOINTS = {

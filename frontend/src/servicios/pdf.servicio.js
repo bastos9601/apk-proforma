@@ -318,6 +318,14 @@ export const generarHTMLProforma = (proforma, detalles, nombreCliente = 'CLIENTE
         </tbody>
       </table>
 
+      <!-- Consideraciones -->
+      ${proforma.consideraciones ? `
+      <div style="margin-top: 15px; margin-bottom: 15px;">
+        <div style="font-weight: bold; font-size: 11px; margin-bottom: 8px;">CONSIDERACIONES:</div>
+        <div style="font-size: 10px; line-height: 1.6; white-space: pre-line;">${proforma.consideraciones}</div>
+      </div>
+      ` : ''}
+
       <!-- Footer -->
       <div class="footer">
         <div class="footer-left">

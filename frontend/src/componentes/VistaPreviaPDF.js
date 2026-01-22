@@ -5,8 +5,8 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  Dimensions
+  Dimensions,
+  Platform
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -29,25 +29,33 @@ export default function VistaPreviaPDF({ visible, onClose, htmlContent }) {
           </TouchableOpacity>
         </View>
 
-        {/* WebView con el HTML */}
-        <View style={estilos.webviewContainer}>
-          {htmlContent ? (
-            <WebView
-              originWhitelist={['*']}
-              source={{ html: htmlContent }}
-              style={estilos.webview}
-              scalesPageToFit={true}
-              showsVerticalScrollIndicator={true}
-            />
-          ) : (
-            <View style={estilos.centrado}>
-              <Text style={estilos.textoVacio}>No hay contenido para mostrar</Text>
-            </View>
-          )}
-        </View>
+        {/* Vista previa del contenido con WebView */}
+        {htmlContent ? (
+          <WebView
+            originWhitelist={['*']}
+            source={{ html: htmlContent }}
+            style={estilos.webview}
+            scalesPageToFit={true}
+            showsVerticalScrollIndicator={true}
+            showsHorizontalScrollIndicator={false}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            // Configuración específica para Android APK
+            androidLayerType={Platform.OS === 'android' ? 'hardware' : undefined}
+            mixedContentMode="always"
+          />
+        ) : (
+          <View style={estilos.centrado}>
+            <Text style={estilos.textoVacio}>No hay contenido para mostrar</Text>
+          </View>
+        )}
 
         {/* Footer */}
         <View style={estilos.footer}>
+          <Text style={estilos.textoInfo}>
+            Esta es una vista previa. El PDF final tendrá mejor calidad.
+          </Text>
           <TouchableOpacity style={estilos.botonCerrarFooter} onPress={onClose}>
             <Text style={estilos.textoBotonCerrar}>Cerrar Vista Previa</Text>
           </TouchableOpacity>
@@ -69,6 +77,11 @@ const estilos = StyleSheet.create({
     backgroundColor: '#2563eb',
     padding: 15,
     paddingTop: 50,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   titulo: {
     fontSize: 18,
@@ -83,17 +96,15 @@ const estilos = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  webviewContainer: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
   webview: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   centrado: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f3f4f6',
   },
   textoVacio: {
     fontSize: 16,
@@ -104,9 +115,16 @@ const estilos = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    elevation: 4,
+  },
+  textoInfo: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 10,
   },
   botonCerrarFooter: {
-    backgroundColor: '#ef4444',
+    backgroundColor: '#10b981',
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',
