@@ -8,13 +8,27 @@ import {
   Alert,
   RefreshControl,
   ActivityIndicator,
-  Modal
+  Modal,
+  ScrollView,
+  TextInput
 } from 'react-native';
-import { obtenerProformas, eliminarProforma, obtenerProformaPorId } from '../servicios/proforma.servicio';
-import { cerrarSesion } from '../servicios/auth.servicio';
+import { 
+  obtenerProformas, 
+  eliminarProforma, 
+  obtenerProformaPorId, 
+  obtenerProformasPorEstado, 
+  obtenerEstadisticasEstados,
+  buscarProformas,
+  obtenerProformasPorVencer,
+  obtenerProformasVencidas
+} from '../servicios/supabase.proforma.servicio';
+import { cerrarSesion } from '../servicios/supabase.auth.servicio';
 import { generarHTMLProforma, generarPDF, compartirPDF } from '../servicios/pdf.servicio';
-import { obtenerConfiguracion } from '../servicios/configuracion.servicio';
+import { obtenerConfiguracion } from '../servicios/supabase.configuracion.servicio';
 import VistaPreviaPDF from '../componentes/VistaPreviaPDF';
+import EstadoBadge, { ESTADOS_CONFIG } from '../componentes/EstadoBadge';
+import BusquedaAvanzada from '../componentes/BusquedaAvanzada';
+import AlertaValidez from '../componentes/AlertaValidez';
 
 export default function HistorialProformasPantalla({ navigation }) {
   const [proformas, setProformas] = useState([]);
@@ -23,28 +37,100 @@ export default function HistorialProformasPantalla({ navigation }) {
   const [mostrarVistaPrevia, setMostrarVistaPrevia] = useState(false);
   const [htmlVistaPrevia, setHtmlVistaPrevia] = useState('');
   const [generandoPDF, setGenerandoPDF] = useState(false);
+  const [filtroEstado, setFiltroEstado] = useState(null);
+  const [estadisticas, setEstadisticas] = useState(null);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [mostrarBusquedaAvanzada, setMostrarBusquedaAvanzada] = useState(false);
+  const [filtrosActivos, setFiltrosActivos] = useState({});
+  const [textoBusqueda, setTextoBusqueda] = useState('');
+  const [proformasPorVencer, setProformasPorVencer] = useState([]);
+  const [proformasVencidas, setProformasVencidas] = useState([]);
 
   useEffect(() => {
     cargarProformas();
-  }, []);
+    cargarEstadisticas();
+    cargarAlertas();
+  }, [filtroEstado]);
 
   // Recargar al volver a la pantalla
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       cargarProformas();
+      cargarEstadisticas();
+      cargarAlertas();
     });
     return unsubscribe;
   }, [navigation]);
 
   const cargarProformas = async () => {
     try {
-      const respuesta = await obtenerProformas();
-      setProformas(respuesta.proformas);
+      const proformas = filtroEstado 
+        ? await obtenerProformasPorEstado(filtroEstado)
+        : await obtenerProformas();
+      setProformas(proformas);
     } catch (error) {
       Alert.alert('Error', 'No se pudieron cargar las proformas');
     } finally {
       setCargando(false);
       setRefrescando(false);
+    }
+  };
+
+  const cargarEstadisticas = async () => {
+    try {
+      const stats = await obtenerEstadisticasEstados();
+      setEstadisticas(stats);
+    } catch (error) {
+      console.error('Error al cargar estadísticas:', error);
+    }
+  };
+
+  const cambiarFiltro = (estado) => {
+    setFiltroEstado(estado === filtroEstado ? null : estado);
+  };
+
+  const cargarAlertas = async () => {
+    try {
+      const porVencer = await obtenerProformasPorVencer();
+      const vencidas = await obtenerProformasVencidas();
+      setProformasPorVencer(porVencer);
+      setProformasVencidas(vencidas);
+    } catch (error) {
+      console.error('Error al cargar alertas:', error);
+    }
+  };
+
+  const aplicarBusquedaAvanzada = async (filtros) => {
+    try {
+      setCargando(true);
+      setFiltrosActivos(filtros);
+      const resultados = await buscarProformas(filtros);
+      setProformas(resultados);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo realizar la búsqueda');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const limpiarBusqueda = () => {
+    setTextoBusqueda('');
+    setFiltrosActivos({});
+    cargarProformas();
+  };
+
+  const busquedaRapida = async (texto) => {
+    setTextoBusqueda(texto);
+    if (texto.trim() === '') {
+      cargarProformas();
+      return;
+    }
+    
+    try {
+      const resultados = await buscarProformas({ texto: texto.trim() });
+      setProformas(resultados);
+    } catch (error) {
+      console.error('Error en búsqueda rápida:', error);
     }
   };
 
@@ -100,14 +186,12 @@ export default function HistorialProformasPantalla({ navigation }) {
     setCargando(true);
     try {
       // Obtener proforma completa con detalles
-      const respuesta = await obtenerProformaPorId(proformaId);
-      const proforma = respuesta.proforma;
+      const proforma = await obtenerProformaPorId(proformaId);
 
       // Obtener configuración
       let configuracion = null;
       try {
-        const configResp = await obtenerConfiguracion();
-        configuracion = configResp.configuracion;
+        configuracion = await obtenerConfiguracion();
       } catch (error) {
         console.log('Usando configuración por defecto');
       }
@@ -115,7 +199,7 @@ export default function HistorialProformasPantalla({ navigation }) {
       // Generar HTML
       const html = generarHTMLProforma(
         proforma,
-        proforma.detalles,
+        proforma.detalle_proforma,
         proforma.nombre_cliente || 'CLIENTE',
         configuracion
       );
@@ -136,15 +220,13 @@ export default function HistorialProformasPantalla({ navigation }) {
       console.log('Iniciando compartir proforma:', proformaId);
       
       // Obtener proforma completa con detalles
-      const respuesta = await obtenerProformaPorId(proformaId);
-      const proforma = respuesta.proforma;
+      const proforma = await obtenerProformaPorId(proformaId);
       console.log('Proforma obtenida:', proforma.id);
 
       // Obtener configuración
       let configuracion = null;
       try {
-        const configResp = await obtenerConfiguracion();
-        configuracion = configResp.configuracion;
+        configuracion = await obtenerConfiguracion();
         console.log('Configuración obtenida');
       } catch (error) {
         console.log('Usando configuración por defecto');
@@ -154,7 +236,7 @@ export default function HistorialProformasPantalla({ navigation }) {
       // Generar PDF
       const pdfUri = await generarPDF(
         proforma,
-        proforma.detalles,
+        proforma.detalle_proforma,
         proforma.nombre_cliente || 'CLIENTE',
         configuracion
       );
@@ -183,7 +265,13 @@ export default function HistorialProformasPantalla({ navigation }) {
         onPress={() => navigation.navigate('VerProforma', { proformaId: item.id })}
       >
         <View style={estilos.cardHeader}>
-          <Text style={estilos.fecha}>{new Date(item.fecha).toLocaleDateString()}</Text>
+          <View style={estilos.cardHeaderLeft}>
+            <Text style={estilos.fecha}>{new Date(item.fecha).toLocaleDateString()}</Text>
+            <EstadoBadge estado={item.estado || 'pendiente'} />
+            {item.fecha_validez && (
+              <AlertaValidez fechaValidez={item.fecha_validez} />
+            )}
+          </View>
           <Text style={estilos.total}>S/ {parseFloat(item.total).toFixed(2)}</Text>
         </View>
         {item.nombre_cliente && (
@@ -256,6 +344,14 @@ export default function HistorialProformasPantalla({ navigation }) {
         htmlContent={htmlVistaPrevia}
       />
 
+      {/* Búsqueda Avanzada */}
+      <BusquedaAvanzada
+        visible={mostrarBusquedaAvanzada}
+        onClose={() => setMostrarBusquedaAvanzada(false)}
+        onBuscar={aplicarBusquedaAvanzada}
+        filtrosIniciales={filtrosActivos}
+      />
+
       <View style={estilos.header}>
         <TouchableOpacity
           style={estilos.botonConfiguracion}
@@ -269,6 +365,141 @@ export default function HistorialProformasPantalla({ navigation }) {
         >
           <Text style={estilos.textoCerrarSesion}>Cerrar Sesión</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Alertas de validez */}
+      {(proformasPorVencer.length > 0 || proformasVencidas.length > 0) && (
+        <View style={estilos.alertasContainer}>
+          {proformasVencidas.length > 0 && (
+            <TouchableOpacity 
+              style={estilos.alertaBanner}
+              onPress={() => {
+                Alert.alert(
+                  'Proformas Vencidas',
+                  `Tienes ${proformasVencidas.length} proforma${proformasVencidas.length !== 1 ? 's' : ''} vencida${proformasVencidas.length !== 1 ? 's' : ''}`,
+                  [{ text: 'OK' }]
+                );
+              }}
+            >
+              <Text style={estilos.alertaBannerIcono}>⚠️</Text>
+              <Text style={estilos.alertaBannerTexto}>
+                {proformasVencidas.length} proforma{proformasVencidas.length !== 1 ? 's' : ''} vencida{proformasVencidas.length !== 1 ? 's' : ''}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {proformasPorVencer.length > 0 && (
+            <TouchableOpacity 
+              style={[estilos.alertaBanner, { backgroundColor: '#fef3c7' }]}
+              onPress={() => {
+                Alert.alert(
+                  'Proformas por Vencer',
+                  `Tienes ${proformasPorVencer.length} proforma${proformasPorVencer.length !== 1 ? 's' : ''} por vencer en los próximos 3 días`,
+                  [{ text: 'OK' }]
+                );
+              }}
+            >
+              <Text style={estilos.alertaBannerIcono}>⏰</Text>
+              <Text style={estilos.alertaBannerTexto}>
+                {proformasPorVencer.length} proforma{proformasPorVencer.length !== 1 ? 's' : ''} por vencer
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Barra de búsqueda */}
+      <View style={estilos.busquedaContainer}>
+        <View style={estilos.busquedaInputContainer}>
+          <Text style={estilos.busquedaIcono}>🔍</Text>
+          <TextInput
+            style={estilos.busquedaInput}
+            placeholder="Buscar por cliente, número..."
+            value={textoBusqueda}
+            onChangeText={busquedaRapida}
+          />
+          {textoBusqueda !== '' && (
+            <TouchableOpacity onPress={limpiarBusqueda}>
+              <Text style={estilos.busquedaLimpiar}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <TouchableOpacity
+          style={estilos.botonBusquedaAvanzada}
+          onPress={() => setMostrarBusquedaAvanzada(true)}
+        >
+          <Text style={estilos.botonBusquedaAvanzadaTexto}>⚙️</Text>
+        </TouchableOpacity>
+      </View>
+
+      Estadísticas
+      {estadisticas && (
+        <View style={estilos.estadisticasContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={estilos.estadisticaCard}>
+              <Text style={estilos.estadisticaNumero}>{estadisticas.total}</Text>
+              <Text style={estilos.estadisticaLabel}>Total</Text>
+            </View>
+            <View style={[estilos.estadisticaCard, { backgroundColor: '#fef3c7' }]}>
+              <Text style={[estilos.estadisticaNumero, { color: '#f59e0b' }]}>
+                {estadisticas.pendiente}
+              </Text>
+              <Text style={estilos.estadisticaLabel}>Pendientes</Text>
+            </View>
+            <View style={[estilos.estadisticaCard, { backgroundColor: '#dbeafe' }]}>
+              <Text style={[estilos.estadisticaNumero, { color: '#3b82f6' }]}>
+                {estadisticas.enviada}
+              </Text>
+              <Text style={estilos.estadisticaLabel}>Enviadas</Text>
+            </View>
+            <View style={[estilos.estadisticaCard, { backgroundColor: '#d1fae5' }]}>
+              <Text style={[estilos.estadisticaNumero, { color: '#10b981' }]}>
+                {estadisticas.aprobada}
+              </Text>
+              <Text style={estilos.estadisticaLabel}>Aprobadas</Text>
+            </View>
+            <View style={[estilos.estadisticaCard, { backgroundColor: '#ede9fe' }]}>
+              <Text style={[estilos.estadisticaNumero, { color: '#8b5cf6' }]}>
+                {estadisticas.facturada}
+              </Text>
+              <Text style={estilos.estadisticaLabel}>Facturadas</Text>
+            </View>
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Filtros de estado */}
+      <View style={estilos.filtrosContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity
+            style={[estilos.filtroChip, !filtroEstado && estilos.filtroChipActivo]}
+            onPress={() => setFiltroEstado(null)}
+          >
+            <Text style={[estilos.filtroTexto, !filtroEstado && estilos.filtroTextoActivo]}>
+              Todas
+            </Text>
+          </TouchableOpacity>
+          
+          {Object.keys(ESTADOS_CONFIG).map((estado) => (
+            <TouchableOpacity
+              key={estado}
+              style={[
+                estilos.filtroChip,
+                filtroEstado === estado && estilos.filtroChipActivo,
+                { backgroundColor: ESTADOS_CONFIG[estado].bgColor }
+              ]}
+              onPress={() => cambiarFiltro(estado)}
+            >
+              <Text style={estilos.filtroIcono}>{ESTADOS_CONFIG[estado].icon}</Text>
+              <Text style={[
+                estilos.filtroTexto,
+                { color: ESTADOS_CONFIG[estado].color },
+                filtroEstado === estado && estilos.filtroTextoActivo
+              ]}>
+                {ESTADOS_CONFIG[estado].label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <FlatList
@@ -351,8 +582,12 @@ const estilos = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 10,
+  },
+  cardHeaderLeft: {
+    flex: 1,
+    gap: 8,
   },
   fecha: {
     fontSize: 14,
@@ -476,6 +711,128 @@ const estilos = StyleSheet.create({
     marginTop: 5,
     fontSize: 14,
     color: '#6b7280',
+  },
+  estadisticasContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  estadisticaCard: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 10,
+    padding: 15,
+    marginRight: 10,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  estadisticaNumero: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  estadisticaLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  filtrosContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  filtroChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  filtroChipActivo: {
+    borderColor: '#2563eb',
+  },
+  filtroIcono: {
+    fontSize: 14,
+    marginRight: 5,
+  },
+  filtroTexto: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  filtroTextoActivo: {
+    color: '#2563eb',
+  },
+  alertasContainer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  alertaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  alertaBannerIcono: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  alertaBannerTexto: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  busquedaContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  busquedaInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  busquedaIcono: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  busquedaInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  busquedaLimpiar: {
+    fontSize: 18,
+    color: '#6b7280',
+    paddingHorizontal: 8,
+  },
+  botonBusquedaAvanzada: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  botonBusquedaAvanzadaTexto: {
+    fontSize: 18,
   },
 });
 

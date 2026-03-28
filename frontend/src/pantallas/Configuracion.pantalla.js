@@ -11,8 +11,8 @@ import {
   Image
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { obtenerConfiguracion, actualizarConfiguracion } from '../servicios/configuracion.servicio';
-import { subirImagen } from '../servicios/cloudinary.servicio';
+import { obtenerConfiguracion, guardarConfiguracion } from '../servicios/supabase.configuracion.servicio';
+import { subirImagen } from '../servicios/supabase.storage.servicio';
 
 export default function ConfiguracionPantalla({ navigation }) {
   const [cargando, setCargando] = useState(true);
@@ -38,21 +38,22 @@ export default function ConfiguracionPantalla({ navigation }) {
 
   const cargarConfiguracion = async () => {
     try {
-      const respuesta = await obtenerConfiguracion();
-      const config = respuesta.configuracion;
+      const config = await obtenerConfiguracion();
       
-      setNombreEmpresa(config.nombre_empresa || '');
-      setNombreSistema(config.nombre_sistema || '');
-      setRepresentante(config.representante || '');
-      setRuc(config.ruc || '');
-      setLogoUrl(config.logo_url || null);
-      setLogoBcpUrl(config.logo_bcp_url || null);
-      setDireccion(config.direccion || '');
-      setTelefono(config.telefono || '');
-      setEmail(config.email || '');
-      setCuentaBanco(config.cuenta_banco || '');
-      setCci(config.cci || '');
-      setTipoCambio(config.tipo_cambio ? config.tipo_cambio.toString() : '3.80');
+      if (config) {
+        setNombreEmpresa(config.nombre_empresa || '');
+        setNombreSistema(config.nombre_sistema || '');
+        setRepresentante(config.representante || '');
+        setRuc(config.ruc || '');
+        setLogoUrl(config.logo_url || null);
+        setLogoBcpUrl(config.logo_bcp_url || null);
+        setDireccion(config.direccion || '');
+        setTelefono(config.telefono || '');
+        setEmail(config.email || '');
+        setCuentaBanco(config.cuenta_banco || '');
+        setCci(config.cci || '');
+        setTipoCambio(config.tipo_cambio ? config.tipo_cambio.toString() : '3.80');
+      }
     } catch (error) {
       Alert.alert('Error', 'No se pudo cargar la configuración');
     } finally {
@@ -146,7 +147,7 @@ export default function ConfiguracionPantalla({ navigation }) {
         tipo_cambio: parseFloat(tipoCambio) || 3.80
       };
 
-      await actualizarConfiguracion(datos);
+      await guardarConfiguracion(datos);
       
       Alert.alert('Éxito', 'Configuración guardada correctamente');
       setLogoUrl(urlLogo);

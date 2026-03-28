@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
+import { supabase } from '../config/supabase.config';
 
 const AuthContext = createContext();
 
@@ -18,8 +18,8 @@ export const AuthProvider = ({ children }) => {
 
   const verificarAutenticacion = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      setEstaAutenticado(!!token);
+      const { data: { session } } = await supabase.auth.getSession();
+      setEstaAutenticado(!!session);
     } catch (error) {
       console.error('Error al verificar autenticación:', error);
       setEstaAutenticado(false);
@@ -31,6 +31,15 @@ export const AuthProvider = ({ children }) => {
   // Verificar al iniciar
   useEffect(() => {
     verificarAutenticacion();
+
+    // Escuchar cambios en la autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setEstaAutenticado(!!session);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   // Verificar cuando la app vuelve al primer plano

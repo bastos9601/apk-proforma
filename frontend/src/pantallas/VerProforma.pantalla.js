@@ -7,10 +7,15 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Alert
+  Alert,
+  Modal,
+  TextInput
 } from 'react-native';
-import { obtenerProformaPorId } from '../servicios/proforma.servicio';
-import { generarPDF, compartirPDF } from '../servicios/pdf.servicio';
+import { obtenerProformaPorId, cambiarEstadoProforma } from '../servicios/supabase.proforma.servicio';
+import { generarPDF, compartirPDF, generarHTMLProforma } from '../servicios/pdf.servicio';
+import { obtenerConfiguracion } from '../servicios/supabase.configuracion.servicio';
+import EstadoBadge, { ESTADOS_CONFIG } from '../componentes/EstadoBadge';
+import AlertaValidez from '../componentes/AlertaValidez';
 
 export default function VerProformaPantalla({ route, navigation }) {
   const { proformaId } = route.params;
@@ -18,6 +23,9 @@ export default function VerProformaPantalla({ route, navigation }) {
   const [detalles, setDetalles] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [generandoPdf, setGenerandoPdf] = useState(false);
+  const [mostrarModalEstado, setMostrarModalEstado] = useState(false);
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState(null);
+  const [notasEstado, setNotasEstado] = useState('');
 
   useEffect(() => {
     cargarProforma();
@@ -25,9 +33,9 @@ export default function VerProformaPantalla({ route, navigation }) {
 
   const cargarProforma = async () => {
     try {
-      const respuesta = await obtenerProformaPorId(proformaId);
-      setProforma(respuesta.proforma);
-      setDetalles(respuesta.proforma.detalles);
+      const proformaData = await obtenerProformaPorId(proformaId);
+      setProforma(proformaData);
+      setDetalles(proformaData.detalle_proforma || []);
     } catch (error) {
       Alert.alert('Error', 'No se pudo cargar la proforma');
       navigation.goBack();
@@ -39,12 +47,51 @@ export default function VerProformaPantalla({ route, navigation }) {
   const manejarGenerarPDF = async () => {
     setGenerandoPdf(true);
     try {
-      const pdfUri = await generarPDF(proforma, detalles);
-      await compartirPDF(pdfUri);
+      // Obtener configuración
+      let configuracion = null;
+      try {
+        configuracion = await obtenerConfiguracion();
+      } catch (error) {
+        console.log('Usando configuración por defecto');
+      }
+
+      const pdfUri = await generarPDF(
+        proforma,
+        detalles,
+        proforma.nombre_cliente || 'CLIENTE',
+        configuracion
+      );
+      await compartirPDF(pdfUri, proforma.nombre_cliente || 'CLIENTE');
     } catch (error) {
       Alert.alert('Error', 'No se pudo generar el PDF');
     } finally {
       setGenerandoPdf(false);
+    }
+  };
+
+  const manejarEditar = () => {
+    navigation.navigate('EditarProforma', { proformaId, proforma, detalles });
+  };
+
+  const abrirModalEstado = (estado) => {
+    setEstadoSeleccionado(estado);
+    setNotasEstado('');
+    setMostrarModalEstado(true);
+  };
+
+  const confirmarCambioEstado = async () => {
+    if (!estadoSeleccionado) return;
+
+    try {
+      setCargando(true);
+      await cambiarEstadoProforma(proformaId, estadoSeleccionado, notasEstado || null);
+      Alert.alert('Éxito', `Estado cambiado a ${ESTADOS_CONFIG[estadoSeleccionado].label}`);
+      setMostrarModalEstado(false);
+      await cargarProforma();
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo cambiar el estado');
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -58,6 +105,53 @@ export default function VerProformaPantalla({ route, navigation }) {
 
   return (
     <View style={estilos.contenedor}>
+      {/* Modal para cambiar estado */}
+      <Modal
+        visible={mostrarModalEstado}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setMostrarModalEstado(false)}
+      >
+        <View style={estilos.modalOverlay}>
+          <View style={estilos.modalContenido}>
+            <Text style={estilos.modalTitulo}>Cambiar Estado</Text>
+            
+            {estadoSeleccionado && (
+              <View style={estilos.estadoSeleccionadoContainer}>
+                <EstadoBadge estado={estadoSeleccionado} />
+              </View>
+            )}
+
+            <Text style={estilos.modalLabel}>Notas (opcional):</Text>
+            <TextInput
+              style={estilos.modalInput}
+              placeholder="Agregar notas sobre el cambio de estado..."
+              value={notasEstado}
+              onChangeText={setNotasEstado}
+              multiline
+              numberOfLines={3}
+            />
+
+            <View style={estilos.modalBotones}>
+              <TouchableOpacity
+                style={[estilos.modalBoton, estilos.modalBotonCancelar]}
+                onPress={() => setMostrarModalEstado(false)}
+              >
+                <Text style={estilos.modalBotonTexto}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[estilos.modalBoton, estilos.modalBotonConfirmar]}
+                onPress={confirmarCambioEstado}
+              >
+                <Text style={[estilos.modalBotonTexto, { color: '#fff' }]}>
+                  Confirmar
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView style={estilos.scroll}>
         <View style={estilos.header}>
           <Text style={estilos.titulo}>BRADATEC</Text>
@@ -77,6 +171,56 @@ export default function VerProformaPantalla({ route, navigation }) {
               {proforma.id.substring(0, 8).toUpperCase()}
             </Text>
           </View>
+          {proforma.fecha_validez && (
+            <View style={estilos.infoFila}>
+              <Text style={estilos.infoLabel}>Válida hasta:</Text>
+              <View style={estilos.infoValorConAlerta}>
+                <Text style={estilos.infoValor}>
+                  {new Date(proforma.fecha_validez).toLocaleDateString()}
+                </Text>
+                <AlertaValidez fechaValidez={proforma.fecha_validez} mostrarSiempre={true} />
+              </View>
+            </View>
+          )}
+          <View style={estilos.infoFila}>
+            <Text style={estilos.infoLabel}>Estado:</Text>
+            <EstadoBadge estado={proforma.estado || 'pendiente'} />
+          </View>
+          {proforma.notas_estado && (
+            <View style={estilos.notasEstadoContainer}>
+              <Text style={estilos.notasEstadoLabel}>Notas:</Text>
+              <Text style={estilos.notasEstadoTexto}>{proforma.notas_estado}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Botones de cambio de estado */}
+        <View style={estilos.estadosBotonesContainer}>
+          <Text style={estilos.estadosBotonesLabel}>Cambiar estado:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {Object.keys(ESTADOS_CONFIG).map((estado) => (
+              <TouchableOpacity
+                key={estado}
+                style={[
+                  estilos.estadoBoton,
+                  { backgroundColor: ESTADOS_CONFIG[estado].bgColor },
+                  proforma.estado === estado && estilos.estadoBotonActivo
+                ]}
+                onPress={() => abrirModalEstado(estado)}
+                disabled={proforma.estado === estado}
+              >
+                <Text style={estilos.estadoBotonIcono}>
+                  {ESTADOS_CONFIG[estado].icon}
+                </Text>
+                <Text style={[
+                  estilos.estadoBotonTexto,
+                  { color: ESTADOS_CONFIG[estado].color }
+                ]}>
+                  {ESTADOS_CONFIG[estado].label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         <View style={estilos.seccion}>
@@ -124,6 +268,13 @@ export default function VerProformaPantalla({ route, navigation }) {
 
       <View style={estilos.footer}>
         <TouchableOpacity
+          style={estilos.botonEditar}
+          onPress={manejarEditar}
+        >
+          <Text style={estilos.textoBoton}>✏️ Editar Proforma</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
           style={[estilos.botonPdf, generandoPdf && estilos.botonDeshabilitado]}
           onPress={manejarGenerarPDF}
           disabled={generandoPdf}
@@ -131,7 +282,7 @@ export default function VerProformaPantalla({ route, navigation }) {
           {generandoPdf ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={estilos.textoBoton}>Generar y Compartir PDF</Text>
+            <Text style={estilos.textoBoton}>📄 Generar PDF</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -186,6 +337,11 @@ const estilos = StyleSheet.create({
   infoValor: {
     fontSize: 14,
     color: '#1f2937',
+  },
+  infoValorConAlerta: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 5,
   },
   seccion: {
     backgroundColor: '#fff',
@@ -288,8 +444,18 @@ const estilos = StyleSheet.create({
     padding: 15,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  botonEditar: {
+    flex: 1,
+    backgroundColor: '#f59e0b',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
   },
   botonPdf: {
+    flex: 1,
     backgroundColor: '#2563eb',
     borderRadius: 8,
     padding: 15,
@@ -302,5 +468,119 @@ const estilos = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  notasEstadoContainer: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#2563eb',
+  },
+  notasEstadoLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  notasEstadoTexto: {
+    fontSize: 14,
+    color: '#1f2937',
+  },
+  estadosBotonesContainer: {
+    backgroundColor: '#fff',
+    margin: 10,
+    padding: 15,
+    borderRadius: 10,
+  },
+  estadosBotonesLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 10,
+  },
+  estadoBoton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  estadoBotonActivo: {
+    borderColor: '#2563eb',
+    opacity: 0.5,
+  },
+  estadoBotonIcono: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  estadoBotonTexto: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContenido: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitulo: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  estadoSeleccionadoContainer: {
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4b5563',
+    marginBottom: 8,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 20,
+  },
+  modalBotones: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalBoton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalBotonCancelar: {
+    backgroundColor: '#f3f4f6',
+  },
+  modalBotonConfirmar: {
+    backgroundColor: '#2563eb',
+  },
+  modalBotonTexto: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
   },
 });

@@ -8,9 +8,11 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
-import { registrar } from '../servicios/auth.servicio';
+import { Ionicons } from '@expo/vector-icons';
+import { registrar } from '../servicios/supabase.auth.servicio';
 import { useAuth } from '../contextos/Auth.contexto';
 
 export default function RegistroPantalla({ navigation }) {
@@ -18,6 +20,8 @@ export default function RegistroPantalla({ navigation }) {
   const [password, setPassword] = useState('');
   const [confirmarPassword, setConfirmarPassword] = useState('');
   const [cargando, setCargando] = useState(false);
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [mostrarConfirmarPassword, setMostrarConfirmarPassword] = useState(false);
   const { actualizarAuth } = useAuth();
 
   const manejarRegistro = async () => {
@@ -58,6 +62,15 @@ export default function RegistroPantalla({ navigation }) {
       style={estilos.contenedor}
     >
       <View style={estilos.formulario}>
+        {/* Logo */}
+        <View style={estilos.logoContainer}>
+          <Image
+            source={require('../../assets/bradatec.png')}
+            style={estilos.logo}
+            resizeMode="contain"
+          />
+        </View>
+
         <Text style={estilos.titulo}>Crear Cuenta</Text>
         <Text style={estilos.subtitulo}>Regístrate para comenzar</Text>
 
@@ -71,23 +84,47 @@ export default function RegistroPantalla({ navigation }) {
           autoCorrect={false}
         />
 
-        <TextInput
-          style={estilos.input}
-          placeholder="Contraseña"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-        />
+        <View style={estilos.passwordContainer}>
+          <TextInput
+            style={estilos.passwordInput}
+            placeholder="Contraseña"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!mostrarPassword}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity
+            style={estilos.eyeButton}
+            onPress={() => setMostrarPassword(!mostrarPassword)}
+          >
+            <Ionicons
+              name={mostrarPassword ? 'eye-off' : 'eye'}
+              size={24}
+              color="#6b7280"
+            />
+          </TouchableOpacity>
+        </View>
 
-        <TextInput
-          style={estilos.input}
-          placeholder="Confirmar contraseña"
-          value={confirmarPassword}
-          onChangeText={setConfirmarPassword}
-          secureTextEntry
-          autoCapitalize="none"
-        />
+        <View style={estilos.passwordContainer}>
+          <TextInput
+            style={estilos.passwordInput}
+            placeholder="Confirmar contraseña"
+            value={confirmarPassword}
+            onChangeText={setConfirmarPassword}
+            secureTextEntry={!mostrarConfirmarPassword}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity
+            style={estilos.eyeButton}
+            onPress={() => setMostrarConfirmarPassword(!mostrarConfirmarPassword)}
+          >
+            <Ionicons
+              name={mostrarConfirmarPassword ? 'eye-off' : 'eye'}
+              size={24}
+              color="#6b7280"
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={[estilos.boton, cargando && estilos.botonDeshabilitado]}
@@ -131,6 +168,14 @@ const estilos = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+  },
   titulo: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -151,6 +196,23 @@ const estilos = StyleSheet.create({
     padding: 12,
     marginBottom: 15,
     fontSize: 16,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingRight: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+  },
+  eyeButton: {
+    padding: 4,
   },
   boton: {
     backgroundColor: '#2563eb',

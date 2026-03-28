@@ -47,6 +47,13 @@ export const generarHTMLProforma = (proforma, detalles, nombreCliente = 'CLIENTE
     year: 'numeric' 
   });
 
+  const fechaValidezFormateada = proforma.fecha_validez ? 
+    new Date(proforma.fecha_validez).toLocaleDateString('es-PE', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }) : null;
+
   return `
     <!DOCTYPE html>
     <html>
@@ -320,6 +327,12 @@ export const generarHTMLProforma = (proforma, detalles, nombreCliente = 'CLIENTE
             <div class="date-label">FECHA</div>
             <div class="date-value">${fechaFormateada}</div>
           </div>
+          ${fechaValidezFormateada ? `
+          <div class="date-box" style="margin-top: 8px; border-color: #f59e0b;">
+            <div class="date-label" style="color: #f59e0b;">VÁLIDA HASTA</div>
+            <div class="date-value" style="color: #f59e0b;">${fechaValidezFormateada}</div>
+          </div>
+          ` : ''}
         </div>
       </div>
 

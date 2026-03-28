@@ -35,14 +35,15 @@ const SegoWebViewPantalla = ({ navigation, route }) => {
 
   const cargarTipoCambio = async () => {
     try {
-      const respuesta = await obtenerConfiguracion();
-      const config = respuesta.configuracion;
-      if (config.tipo_cambio) {
+      const config = await obtenerConfiguracion();
+      if (config && config.tipo_cambio) {
         setTipoCambio(parseFloat(config.tipo_cambio));
         console.log('Tipo de cambio cargado:', config.tipo_cambio);
+      } else {
+        console.log('No hay configuración guardada, usando tipo de cambio por defecto: 3.80');
       }
     } catch (error) {
-      console.log('Usando tipo de cambio por defecto: 3.80');
+      console.log('Error al cargar configuración, usando tipo de cambio por defecto: 3.80');
     }
   };
 

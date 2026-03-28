@@ -11,12 +11,13 @@ import {
   Image
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { crearProforma } from '../servicios/proforma.servicio';
-import { subirImagen } from '../servicios/cloudinary.servicio';
+import { crearProforma } from '../servicios/supabase.proforma.servicio';
+import { subirImagen } from '../servicios/supabase.storage.servicio';
 import { generarPDF, compartirPDF, generarHTMLProforma } from '../servicios/pdf.servicio';
 import { convertirNumeroALetras } from '../utilidades/convertirNumeroALetras';
-import { guardarProductoCatalogo } from '../servicios/producto.servicio';
-import { obtenerConfiguracion } from '../servicios/configuracion.servicio';
+import { crearProductoCatalogo } from '../servicios/supabase.catalogo.servicio';
+import { obtenerConfiguracion } from '../servicios/supabase.configuracion.servicio';
+import { obtenerSiguienteNumeroProforma } from '../servicios/supabase.contador.servicio';
 import BuscadorProductos from '../componentes/BuscadorProductos';
 import VistaPreviaPDF from '../componentes/VistaPreviaPDF';
 
@@ -63,9 +64,13 @@ export default function CrearProformaPantalla({ navigation }) {
     console.log('Total de items ahora:', nuevosItems.length);
   };
 
-  // Seleccionar producto de SEGO
+  // Seleccionar producto del catálogo
   const seleccionarProductoSego = (producto) => {
-    setDescripcion(producto.descripcion);
+    // Llenar el nombre del producto
+    setNombreProducto(producto.nombre || '');
+    
+    // Llenar la descripción
+    setDescripcion(producto.descripcion || '');
     
     // Si el producto tiene precio válido, usarlo
     if (producto.precio && producto.precio > 0) {
@@ -81,9 +86,9 @@ export default function CrearProformaPantalla({ navigation }) {
       );
     }
     
-    // Opcionalmente podrías descargar la imagen
-    if (producto.imagenUrl) {
-      setImagenUri(producto.imagenUrl);
+    // Cargar la imagen si existe
+    if (producto.imagen_url) {
+      setImagenUri(producto.imagen_url);
     }
   };
 
@@ -230,11 +235,11 @@ export default function CrearProformaPantalla({ navigation }) {
       const imagenUrl = await subirImagen(imagenUri);
 
       // Guardar producto
-      await guardarProductoCatalogo({
+      await crearProductoCatalogo({
         nombre: nombreProducto.trim(),
         descripcion: descripcion.trim(),
         precio: precioNum,
-        imagenUrl
+        imagen_url: imagenUrl
       });
 
       Alert.alert('Éxito', '⭐ Producto guardado en tu catálogo');
@@ -316,8 +321,7 @@ export default function CrearProformaPantalla({ navigation }) {
       // Obtener configuración
       let configuracion = null;
       try {
-        const configResp = await obtenerConfiguracion();
-        configuracion = configResp.configuracion;
+        configuracion = await obtenerConfiguracion();
       } catch (error) {
         console.log('Usando configuración por defecto');
       }
@@ -378,12 +382,18 @@ export default function CrearProformaPantalla({ navigation }) {
 
     setCargando(true);
     try {
-      // Subir imágenes a Cloudinary
+      // Intentar subir imágenes, pero continuar si falla
       const itemsConUrls = await Promise.all(
         items.map(async (item) => {
           if (item.imagenUri) {
-            const url = await subirImagen(item.imagenUri);
-            return { ...item, imagenUrl: url };
+            try {
+              const url = await subirImagen(item.imagenUri);
+              return { ...item, imagenUrl: url };
+            } catch (error) {
+              console.warn('No se pudo subir imagen, usando URI local:', error);
+              // Usar la URI local si falla la subida
+              return { ...item, imagenUrl: item.imagenUri };
+            }
           }
           return item;
         })
@@ -393,39 +403,52 @@ export default function CrearProformaPantalla({ navigation }) {
       const total = calcularTotal();
       const totalLetras = convertirNumeroALetras(total);
 
+      // Obtener siguiente número de proforma
+      const numeroProforma = await obtenerSiguienteNumeroProforma();
+
+      // Calcular fecha de validez (5 días desde hoy)
+      const fechaValidez = new Date();
+      fechaValidez.setDate(fechaValidez.getDate() + 5);
+      const fechaValidezStr = fechaValidez.toISOString().split('T')[0];
+
       // Preparar datos
       const proformaData = {
         fecha: new Date().toISOString().split('T')[0],
         total,
-        totalLetras,
-        nombreCliente: nombreCliente.trim(),
-        descripcionServicio: descripcionServicio.trim(),
+        total_letras: totalLetras,
+        numero_proforma: numeroProforma,
+        nombre_cliente: nombreCliente.trim(),
+        descripcion_servicio: descripcionServicio.trim(),
         consideraciones: incluirConsideraciones ? consideraciones.trim() : null,
+        fecha_validez: fechaValidezStr,
         detalles: itemsConUrls.map(item => ({
           descripcion: item.descripcion,
           cantidad: item.cantidad,
           precio: item.precio,
           total: item.total,
-          imagenUrl: item.imagenUrl
+          imagen_url: item.imagenUrl || null
         }))
       };
 
-      // Crear proforma en el backend
-      const respuesta = await crearProforma(proformaData);
+      // Crear proforma en Supabase
+      const proforma = await crearProforma(proformaData);
 
       // Obtener configuración del usuario
       let configuracion = null;
       try {
-        const configResp = await obtenerConfiguracion();
-        configuracion = configResp.configuracion;
+        configuracion = await obtenerConfiguracion();
       } catch (error) {
         console.log('No se pudo cargar configuración, usando valores por defecto');
       }
 
       // Generar PDF con nombre del cliente y configuración
       const pdfUri = await generarPDF(
-        respuesta.proforma,
-        respuesta.proforma.detalles,
+        {
+          ...proforma,
+          nombre_cliente: nombreCliente.trim(),
+          detalles: proformaData.detalles
+        },
+        proformaData.detalles,
         nombreCliente.trim(),
         configuracion
       );

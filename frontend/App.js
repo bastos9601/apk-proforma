@@ -10,6 +10,7 @@ import BienvenidaPantalla from './src/pantallas/Bienvenida.pantalla';
 import LoginPantalla from './src/pantallas/Login.pantalla';
 import RegistroPantalla from './src/pantallas/Registro.pantalla';
 import CrearProformaPantalla from './src/pantallas/CrearProforma.pantalla';
+import EditarProformaPantalla from './src/pantallas/EditarProforma.pantalla';
 import HistorialProformasPantalla from './src/pantallas/HistorialProformas.pantalla';
 import VerProformaPantalla from './src/pantallas/VerProforma.pantalla';
 import ConfiguracionPantalla from './src/pantallas/Configuracion.pantalla';
@@ -76,6 +77,11 @@ function AppNavigator() {
               name="CrearProforma" 
               component={CrearProformaPantalla}
               options={{ title: 'Nueva Proforma' }}
+            />
+            <Stack.Screen 
+              name="EditarProforma" 
+              component={EditarProformaPantalla}
+              options={{ title: 'Editar Proforma' }}
             />
             <Stack.Screen 
               name="VerProforma" 

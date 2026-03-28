@@ -11,7 +11,7 @@ import {
   Modal,
   Alert
 } from 'react-native';
-import { obtenerCatalogo, eliminarProductoCatalogo, actualizarProductoCatalogo } from '../servicios/producto.servicio';
+import { obtenerProductosCatalogo, eliminarProductoCatalogo, actualizarProductoCatalogo } from '../servicios/supabase.catalogo.servicio';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function BuscadorProductos({ visible, onClose, onSeleccionar }) {
@@ -37,8 +37,8 @@ export default function BuscadorProductos({ visible, onClose, onSeleccionar }) {
   const cargarCatalogo = async () => {
     setCargando(true);
     try {
-      const respuesta = await obtenerCatalogo();
-      setProductos(respuesta.productos || []);
+      const productos = await obtenerProductosCatalogo();
+      setProductos(productos || []);
     } catch (error) {
       console.error('Error al cargar catálogo:', error);
       Alert.alert('Error', 'No se pudo cargar el catálogo');
@@ -205,9 +205,9 @@ export default function BuscadorProductos({ visible, onClose, onSeleccionar }) {
           style={estilos.productoTouchable}
           onPress={() => seleccionar(item)}
         >
-          {item.imagenUrl ? (
+          {item.imagen_url ? (
             <Image
-              source={{ uri: item.imagenUrl }}
+              source={{ uri: item.imagen_url }}
               style={estilos.productoImagen}
               resizeMode="cover"
             />
