@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { obtenerConfiguracion } from '../servicios/configuracion.servicio';
+import { obtenerConfiguracion } from '../servicios/supabase.configuracion.servicio';
 
 const SegoWebViewPantalla = ({ navigation, route }) => {
   const webViewRef = useRef(null);

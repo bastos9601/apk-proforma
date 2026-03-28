@@ -244,8 +244,12 @@ export default function CrearProformaPantalla({ navigation }) {
 
       Alert.alert('Éxito', '⭐ Producto guardado en tu catálogo');
       
-      // Limpiar solo el nombre del producto
+      // Limpiar todos los campos
       setNombreProducto('');
+      setDescripcion('');
+      setCantidad('');
+      setPrecio('');
+      setImagenUri(null);
     } catch (error) {
       console.error('Error:', error);
       Alert.alert('Error', error.error || 'No se pudo guardar el producto');

@@ -1,0 +1,109 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../config/supabase';
+import Navbar from '../components/Navbar';
+import './Dashboard.css';
+
+function Dashboard() {
+  const [stats, setStats] = useState({
+    totalProformas: 0,
+    totalProductos: 0,
+    usuario: ''
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    cargarEstadisticas();
+  }, []);
+
+  const cargarEstadisticas = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Contar proformas
+      const { count: proformasCount } = await supabase
+        .from('proformas')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', user.id);
+
+      // Contar productos del catálogo
+      const { count: productosCount } = await supabase
+        .from('catalogo_productos')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', user.id);
+
+      setStats({
+        totalProformas: proformasCount || 0,
+        totalProductos: productosCount || 0,
+        usuario: user.email
+      });
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="container">
+          <p>Cargando...</p>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Navbar />
+      <div className="container dashboard-container">
+        <div className="dashboard-header">
+          <h1>Bienvenido a BRAPRO</h1>
+          <p className="user-email">{stats.usuario}</p>
+        </div>
+
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">📄</div>
+            <div className="stat-info">
+              <h3>{stats.totalProformas}</h3>
+              <p>Proformas Creadas</p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">📦</div>
+            <div className="stat-info">
+              <h3>{stats.totalProductos}</h3>
+              <p>Productos en Catálogo</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="actions-grid">
+          <Link to="/proformas" className="action-card">
+            <div className="action-icon">📋</div>
+            <h3>Ver Proformas</h3>
+            <p>Gestionar proformas existentes</p>
+          </Link>
+
+          <Link to="/catalogo" className="action-card">
+            <div className="action-icon">🛍️</div>
+            <h3>Catálogo</h3>
+            <p>Administrar productos</p>
+          </Link>
+
+          <Link to="/configuracion" className="action-card">
+            <div className="action-icon">⚙️</div>
+            <h3>Configuración</h3>
+            <p>Ajustes de la empresa</p>
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default Dashboard;

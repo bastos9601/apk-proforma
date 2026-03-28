@@ -7,6 +7,7 @@ const proformaRutas = require('./rutas/proforma.rutas');
 const imagenRutas = require('./rutas/imagen.rutas');
 const productoRutas = require('./rutas/producto.rutas');
 const configuracionRutas = require('./rutas/configuracion.rutas');
+const segoRutas = require('./rutas/sego.rutas');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.use('/api/proformas', proformaRutas);
 app.use('/api/imagenes', imagenRutas);
 app.use('/api/productos', productoRutas);
 app.use('/api/configuracion', configuracionRutas);
+app.use('/api/sego', segoRutas);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
