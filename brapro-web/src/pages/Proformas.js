@@ -5,7 +5,9 @@ import './Pages.css';
 
 function Proformas() {
   const [proformas, setProformas] = useState([]);
+  const [proformasFiltradas, setProformasFiltradas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
     cargarProformas();
@@ -23,11 +25,46 @@ function Proformas() {
 
       if (error) throw error;
       setProformas(data || []);
-    } catch (error) {
-      console.error('Error:', error);
+      setProformasFiltradas(data || []);
+    } catch (err) {
+      console.error('Error:', err);
       alert('Error al cargar proformas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const filtrarProformas = (termino) => {
+    setBusqueda(termino);
+    
+    if (!termino.trim()) {
+      setProformasFiltradas(proformas);
+      return;
+    }
+
+    const terminoLower = termino.toLowerCase();
+    const filtradas = proformas.filter(p => 
+      (p.nombre_cliente && p.nombre_cliente.toLowerCase().includes(terminoLower)) ||
+      (p.numero_proforma && p.numero_proforma.toLowerCase().includes(terminoLower)) ||
+      (p.estado && p.estado.toLowerCase().includes(terminoLower))
+    );
+    
+    setProformasFiltradas(filtradas);
+  };
+
+  const cambiarEstado = async (id, nuevoEstado) => {
+    try {
+      const { error } = await supabase
+        .from('proformas')
+        .update({ estado: nuevoEstado })
+        .eq('id', id);
+
+      if (error) throw error;
+      alert(`✅ Estado cambiado a: ${nuevoEstado}`);
+      cargarProformas();
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Error al cambiar estado');
     }
   };
 
@@ -43,9 +80,35 @@ function Proformas() {
       if (error) throw error;
       alert('Proforma eliminada');
       cargarProformas();
-    } catch (error) {
+    } catch (err) {
       alert('Error al eliminar');
     }
+  };
+
+  const getEstadoBadge = (estado) => {
+    const estados = {
+      'Pendiente': { color: '#f59e0b', emoji: '⏳' },
+      'Enviada': { color: '#3b82f6', emoji: '📤' },
+      'Aprobada': { color: '#10b981', emoji: '✅' },
+      'Rechazada': { color: '#ef4444', emoji: '❌' },
+      'Completada': { color: '#8b5cf6', emoji: '🎉' }
+    };
+    
+    const config = estados[estado] || estados['Pendiente'];
+    
+    return (
+      <span style={{
+        background: config.color,
+        color: 'white',
+        padding: '4px 12px',
+        borderRadius: '12px',
+        fontSize: '13px',
+        fontWeight: '600',
+        display: 'inline-block'
+      }}>
+        {config.emoji} {estado || 'Pendiente'}
+      </span>
+    );
   };
 
   return (
@@ -56,11 +119,48 @@ function Proformas() {
           <h1>📄 Mis Proformas</h1>
         </div>
 
+        {/* Buscador */}
+        <div className="search-container" style={{marginBottom: '24px'}}>
+          <input
+            type="text"
+            placeholder="🔍 Buscar por cliente, número de proforma o estado..."
+            value={busqueda}
+            onChange={(e) => filtrarProformas(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '14px 20px',
+              fontSize: '16px',
+              border: '2px solid #e5e7eb',
+              borderRadius: '12px',
+              outline: 'none',
+              transition: 'all 0.3s ease'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+          />
+          {busqueda && (
+            <p style={{marginTop: '8px', color: '#6b7280', fontSize: '14px'}}>
+              Mostrando {proformasFiltradas.length} de {proformas.length} proformas
+            </p>
+          )}
+        </div>
+
         {loading ? (
           <p>Cargando...</p>
         ) : proformas.length === 0 ? (
           <div className="empty-state">
             <p>No tienes proformas aún</p>
+          </div>
+        ) : proformasFiltradas.length === 0 ? (
+          <div className="empty-state">
+            <p>No se encontraron proformas con "{busqueda}"</p>
+            <button 
+              onClick={() => filtrarProformas('')}
+              className="btn btn-secondary"
+              style={{marginTop: '16px'}}
+            >
+              Limpiar búsqueda
+            </button>
           </div>
         ) : (
           <div className="table-container">
@@ -71,16 +171,37 @@ function Proformas() {
                   <th>Cliente</th>
                   <th>Fecha</th>
                   <th>Total</th>
+                  <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {proformas.map((proforma) => (
+                {proformasFiltradas.map((proforma) => (
                   <tr key={proforma.id}>
                     <td>{proforma.numero_proforma || 'N/A'}</td>
                     <td>{proforma.nombre_cliente || 'Sin cliente'}</td>
                     <td>{new Date(proforma.fecha).toLocaleDateString()}</td>
                     <td>S/ {proforma.total.toFixed(2)}</td>
+                    <td>
+                      <select
+                        value={proforma.estado || 'Pendiente'}
+                        onChange={(e) => cambiarEstado(proforma.id, e.target.value)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          border: '2px solid #e5e7eb',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <option value="Pendiente">⏳ Pendiente</option>
+                        <option value="Enviada">📤 Enviada</option>
+                        <option value="Aprobada">✅ Aprobada</option>
+                        <option value="Rechazada">❌ Rechazada</option>
+                        <option value="Completada">🎉 Completada</option>
+                      </select>
+                    </td>
                     <td>
                       <a
                         href={`/ver-proforma/${proforma.id}`}

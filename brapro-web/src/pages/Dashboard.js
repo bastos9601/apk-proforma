@@ -8,6 +8,8 @@ function Dashboard() {
   const [stats, setStats] = useState({
     totalProformas: 0,
     totalProductos: 0,
+    pendientes: 0,
+    aprobadas: 0,
     usuario: ''
   });
   const [loading, setLoading] = useState(true);
@@ -32,13 +34,29 @@ function Dashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('usuario_id', user.id);
 
+      // Contar proformas pendientes
+      const { count: pendientesCount } = await supabase
+        .from('proformas')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', user.id)
+        .eq('estado', 'Pendiente');
+
+      // Contar proformas aprobadas
+      const { count: aprobadasCount } = await supabase
+        .from('proformas')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', user.id)
+        .eq('estado', 'Aprobada');
+
       setStats({
         totalProformas: proformasCount || 0,
         totalProductos: productosCount || 0,
+        pendientes: pendientesCount || 0,
+        aprobadas: aprobadasCount || 0,
         usuario: user.email
       });
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (err) {
+      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
@@ -70,6 +88,22 @@ function Dashboard() {
             <div className="stat-info">
               <h3>{stats.totalProformas}</h3>
               <p>Proformas Creadas</p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">⏳</div>
+            <div className="stat-info">
+              <h3>{stats.pendientes}</h3>
+              <p>Pendientes</p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">✅</div>
+            <div className="stat-info">
+              <h3>{stats.aprobadas}</h3>
+              <p>Aprobadas</p>
             </div>
           </div>
 

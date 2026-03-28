@@ -177,7 +177,8 @@ function CrearProforma() {
           total_letras: `SON: ${total.toFixed(2)} SOLES`,
           nombre_cliente: nombreCliente,
           descripcion_servicio: descripcionServicio,
-          consideraciones: incluirConsideraciones ? consideraciones : null
+          consideraciones: incluirConsideraciones ? consideraciones : null,
+          estado: 'Pendiente'
         }])
         .select()
         .single();
