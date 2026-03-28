@@ -85,32 +85,6 @@ function Proformas() {
     }
   };
 
-  const getEstadoBadge = (estado) => {
-    const estados = {
-      'Pendiente': { color: '#f59e0b', emoji: '⏳' },
-      'Enviada': { color: '#3b82f6', emoji: '📤' },
-      'Aprobada': { color: '#10b981', emoji: '✅' },
-      'Rechazada': { color: '#ef4444', emoji: '❌' },
-      'Completada': { color: '#8b5cf6', emoji: '🎉' }
-    };
-    
-    const config = estados[estado] || estados['Pendiente'];
-    
-    return (
-      <span style={{
-        background: config.color,
-        color: 'white',
-        padding: '4px 12px',
-        borderRadius: '12px',
-        fontSize: '13px',
-        fontWeight: '600',
-        display: 'inline-block'
-      }}>
-        {config.emoji} {estado || 'Pendiente'}
-      </span>
-    );
-  };
-
   return (
     <>
       <Navbar />
