@@ -30,7 +30,7 @@ function Configuracion() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('configuracion')
         .select('*')
         .eq('usuario_id', user.id)
@@ -39,8 +39,8 @@ function Configuracion() {
       if (data) {
         setConfig(data);
       }
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (err) {
+      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ function Configuracion() {
       const extension = archivo.name.split('.').pop();
       const nombreArchivo = `${tipo}_${timestamp}.${extension}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('proformas')
         .upload(nombreArchivo, archivo, {
           contentType: archivo.type,
@@ -105,9 +105,9 @@ function Configuracion() {
         .getPublicUrl(nombreArchivo);
 
       return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error al subir imagen:', error);
-      throw error;
+    } catch (err) {
+      console.error('Error al subir imagen:', err);
+      throw err;
     }
   };
 

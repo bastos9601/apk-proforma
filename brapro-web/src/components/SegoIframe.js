@@ -21,13 +21,14 @@ function SegoIframe({ visible, onClose, onAgregarProducto }) {
         ventanaSego.close();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const cargarTipoCambio = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('configuracion')
         .select('tipo_cambio')
         .eq('usuario_id', user.id)
@@ -36,8 +37,8 @@ function SegoIframe({ visible, onClose, onAgregarProducto }) {
       if (data && data.tipo_cambio) {
         setTipoCambio(parseFloat(data.tipo_cambio));
       }
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (err) {
+      console.error('Error:', err);
     }
   };
 

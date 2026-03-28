@@ -22,7 +22,7 @@ function ModalSego({ visible, onClose, onAgregarProducto }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('configuracion')
         .select('tipo_cambio')
         .eq('usuario_id', user.id)
@@ -31,8 +31,8 @@ function ModalSego({ visible, onClose, onAgregarProducto }) {
       if (data && data.tipo_cambio) {
         setTipoCambio(parseFloat(data.tipo_cambio));
       }
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (err) {
+      console.error('Error:', err);
     }
   };
 

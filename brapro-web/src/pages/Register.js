@@ -28,7 +28,7 @@ function Register() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
       });
@@ -37,8 +37,8 @@ function Register() {
 
       alert('¡Registro exitoso! Ahora puedes iniciar sesión.');
       navigate('/login');
-    } catch (error) {
-      setError(error.message || 'Error al registrarse');
+    } catch (err) {
+      setError(err.message || 'Error al registrarse');
     } finally {
       setLoading(false);
     }

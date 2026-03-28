@@ -56,7 +56,7 @@ function CrearProforma() {
       const extension = archivo.name.split('.').pop();
       const nombreArchivo = `producto_${timestamp}.${extension}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('proformas')
         .upload(nombreArchivo, archivo, {
           contentType: archivo.type,
@@ -71,9 +71,9 @@ function CrearProforma() {
         .getPublicUrl(nombreArchivo);
 
       return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error al subir imagen:', error);
-      throw error;
+    } catch (err) {
+      console.error('Error al subir imagen:', err);
+      throw err;
     }
   };
 

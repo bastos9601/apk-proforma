@@ -16,7 +16,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -24,8 +24,8 @@ function Login() {
       if (error) throw error;
 
       navigate('/dashboard');
-    } catch (error) {
-      setError(error.message || 'Error al iniciar sesión');
+    } catch (err) {
+      setError(err.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
