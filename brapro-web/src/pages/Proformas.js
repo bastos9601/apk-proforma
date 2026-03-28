@@ -158,7 +158,7 @@ function Proformas() {
                     <td>S/ {proforma.total.toFixed(2)}</td>
                     <td>
                       <select
-                        value={proforma.estado || 'Pendiente'}
+                        value={proforma.estado || 'pendiente'}
                         onChange={(e) => cambiarEstado(proforma.id, e.target.value)}
                         style={{
                           padding: '6px 12px',
@@ -169,11 +169,11 @@ function Proformas() {
                           fontWeight: '600'
                         }}
                       >
-                        <option value="Pendiente">⏳ Pendiente</option>
-                        <option value="Enviada">📤 Enviada</option>
-                        <option value="Aprobada">✅ Aprobada</option>
-                        <option value="Rechazada">❌ Rechazada</option>
-                        <option value="Completada">🎉 Completada</option>
+                        <option value="pendiente">⏳ Pendiente</option>
+                        <option value="enviada">📤 Enviada</option>
+                        <option value="aprobada">✅ Aprobada</option>
+                        <option value="rechazada">❌ Rechazada</option>
+                        <option value="facturada">🎉 Facturada</option>
                       </select>
                     </td>
                     <td>

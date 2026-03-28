@@ -39,14 +39,14 @@ function Dashboard() {
         .from('proformas')
         .select('*', { count: 'exact', head: true })
         .eq('usuario_id', user.id)
-        .eq('estado', 'Pendiente');
+        .eq('estado', 'pendiente');
 
       // Contar proformas aprobadas
       const { count: aprobadasCount } = await supabase
         .from('proformas')
         .select('*', { count: 'exact', head: true })
         .eq('usuario_id', user.id)
-        .eq('estado', 'Aprobada');
+        .eq('estado', 'aprobada');
 
       setStats({
         totalProformas: proformasCount || 0,

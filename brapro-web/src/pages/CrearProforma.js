@@ -178,7 +178,7 @@ function CrearProforma() {
           nombre_cliente: nombreCliente,
           descripcion_servicio: descripcionServicio,
           consideraciones: incluirConsideraciones ? consideraciones : null,
-          estado: 'Pendiente'
+          estado: 'pendiente'
         }])
         .select()
         .single();
