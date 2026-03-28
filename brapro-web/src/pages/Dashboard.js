@@ -83,6 +83,12 @@ function Dashboard() {
         </div>
 
         <div className="actions-grid">
+          <Link to="/crear-proforma" className="action-card action-card-primary">
+            <div className="action-icon">➕</div>
+            <h3>Nueva Proforma</h3>
+            <p>Crear una nueva proforma</p>
+          </Link>
+
           <Link to="/proformas" className="action-card">
             <div className="action-icon">📋</div>
             <h3>Ver Proformas</h3>
