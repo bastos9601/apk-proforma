@@ -29,6 +29,7 @@ import VistaPreviaPDF from '../componentes/VistaPreviaPDF';
 import EstadoBadge, { ESTADOS_CONFIG } from '../componentes/EstadoBadge';
 import BusquedaAvanzada from '../componentes/BusquedaAvanzada';
 import AlertaValidez from '../componentes/AlertaValidez';
+import { formatearFecha } from '../utilidades/formatearFecha';
 
 export default function HistorialProformasPantalla({ navigation }) {
   const [proformas, setProformas] = useState([]);
@@ -266,8 +267,8 @@ export default function HistorialProformasPantalla({ navigation }) {
       >
         <View style={estilos.cardHeader}>
           <View style={estilos.cardHeaderLeft}>
-            <Text style={estilos.fecha}>{new Date(item.fecha).toLocaleDateString()}</Text>
-            <EstadoBadge estado={item.estado || 'pendiente'} />
+            <Text style={estilos.fecha}>{formatearFecha(item.fecha)}</Text>
+            <EstadoBadge estado={item.estado || 'pendiente'} tipoDocumento={item.tipo_documento} />
             {item.fecha_validez && (
               <AlertaValidez fechaValidez={item.fecha_validez} />
             )}
@@ -353,18 +354,36 @@ export default function HistorialProformasPantalla({ navigation }) {
       />
 
       <View style={estilos.header}>
-        <TouchableOpacity
-          style={estilos.botonConfiguracion}
-          onPress={() => navigation.navigate('Configuracion')}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={estilos.headerScroll}
         >
-          <Text style={estilos.textoConfiguracion}>⚙️ Configuración</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={estilos.botonCerrarSesion}
-          onPress={manejarCerrarSesion}
-        >
-          <Text style={estilos.textoCerrarSesion}>Cerrar Sesión</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={estilos.botonHeader}
+            onPress={() => navigation.navigate('Configuracion')}
+          >
+            <Text style={estilos.textoBotonHeader}>Configuración</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[estilos.botonHeader, { backgroundColor: '#d1fae5' }]}
+            onPress={() => navigation.navigate('HistorialFacturas')}
+          >
+            <Text style={[estilos.textoBotonHeader, { color: '#10b981' }]}>Facturas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[estilos.botonHeader, { backgroundColor: '#dbeafe' }]}
+            onPress={() => navigation.navigate('HistorialBoletas')}
+          >
+            <Text style={[estilos.textoBotonHeader, { color: '#2563eb' }]}>Boletas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[estilos.botonHeader, { backgroundColor: '#fee2e2' }]}
+            onPress={manejarCerrarSesion}
+          >
+            <Text style={[estilos.textoBotonHeader, { color: '#ef4444' }]}>Cerrar Sesión</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Alertas de validez */}
@@ -541,29 +560,27 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    padding: 10,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  },
+  headerScroll: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  botonHeader: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  botonConfiguracion: {
-    padding: 8,
-  },
-  textoConfiguracion: {
-    color: '#2563eb',
-    fontSize: 14,
+  textoBotonHeader: {
+    fontSize: 13,
     fontWeight: '600',
-  },
-  botonCerrarSesion: {
-    padding: 8,
-  },
-  textoCerrarSesion: {
-    color: '#ef4444',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#4b5563',
   },
   lista: {
     padding: 10,

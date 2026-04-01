@@ -34,14 +34,20 @@ const ESTADOS_CONFIG = {
   },
 };
 
-export default function EstadoBadge({ estado, mostrarIcono = true }) {
+export default function EstadoBadge({ estado, mostrarIcono = true, tipoDocumento = null }) {
   const config = ESTADOS_CONFIG[estado] || ESTADOS_CONFIG.pendiente;
+  
+  // Si el estado es "facturada" y hay tipo de documento, personalizar el label
+  let label = config.label;
+  if (estado === 'facturada' && tipoDocumento) {
+    label = tipoDocumento === 'factura' ? 'Factura' : 'Boleta';
+  }
 
   return (
     <View style={[estilos.badge, { backgroundColor: config.bgColor }]}>
       {mostrarIcono && <Text style={estilos.icon}>{config.icon}</Text>}
       <Text style={[estilos.texto, { color: config.color }]}>
-        {config.label}
+        {label}
       </Text>
     </View>
   );

@@ -30,7 +30,8 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE"
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -41,9 +42,10 @@
         }
       ]
     ],
+    "owner": "colom",
     "extra": {
       "eas": {
-        "projectId": "9835bbf3-0b1a-4480-b131-eb304a3476c8"
+        "projectId": "4c386bf0-099b-456b-b39d-81f424fe908f"
       }
     }
   }

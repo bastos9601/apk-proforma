@@ -16,6 +16,7 @@ import { generarPDF, compartirPDF, generarHTMLProforma } from '../servicios/pdf.
 import { obtenerConfiguracion } from '../servicios/supabase.configuracion.servicio';
 import EstadoBadge, { ESTADOS_CONFIG } from '../componentes/EstadoBadge';
 import AlertaValidez from '../componentes/AlertaValidez';
+import { formatearFecha } from '../utilidades/formatearFecha';
 
 export default function VerProformaPantalla({ route, navigation }) {
   const { proformaId } = route.params;
@@ -71,6 +72,10 @@ export default function VerProformaPantalla({ route, navigation }) {
 
   const manejarEditar = () => {
     navigation.navigate('EditarProforma', { proformaId, proforma, detalles });
+  };
+
+  const manejarCrearFactura = () => {
+    navigation.navigate('CrearFactura', { proformaId });
   };
 
   const abrirModalEstado = (estado) => {
@@ -162,7 +167,7 @@ export default function VerProformaPantalla({ route, navigation }) {
           <View style={estilos.infoFila}>
             <Text style={estilos.infoLabel}>Fecha:</Text>
             <Text style={estilos.infoValor}>
-              {new Date(proforma.fecha).toLocaleDateString()}
+              {formatearFecha(proforma.fecha)}
             </Text>
           </View>
           <View style={estilos.infoFila}>
@@ -176,7 +181,7 @@ export default function VerProformaPantalla({ route, navigation }) {
               <Text style={estilos.infoLabel}>Válida hasta:</Text>
               <View style={estilos.infoValorConAlerta}>
                 <Text style={estilos.infoValor}>
-                  {new Date(proforma.fecha_validez).toLocaleDateString()}
+                  {formatearFecha(proforma.fecha_validez)}
                 </Text>
                 <AlertaValidez fechaValidez={proforma.fecha_validez} mostrarSiempre={true} />
               </View>
@@ -267,11 +272,29 @@ export default function VerProformaPantalla({ route, navigation }) {
       </ScrollView>
 
       <View style={estilos.footer}>
+        {proforma.estado === 'aprobada' && (
+          <>
+            <TouchableOpacity
+              style={estilos.botonFactura}
+              onPress={manejarCrearFactura}
+            >
+              <Text style={estilos.textoBoton}>🧾 Factura</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={estilos.botonBoleta}
+              onPress={() => navigation.navigate('CrearBoleta', { proformaId: proforma.id })}
+            >
+              <Text style={estilos.textoBoton}>📄 Boleta</Text>
+            </TouchableOpacity>
+          </>
+        )}
+        
         <TouchableOpacity
           style={estilos.botonEditar}
           onPress={manejarEditar}
         >
-          <Text style={estilos.textoBoton}>✏️ Editar Proforma</Text>
+          <Text style={estilos.textoBoton}>✏️ Editar</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -282,7 +305,7 @@ export default function VerProformaPantalla({ route, navigation }) {
           {generandoPdf ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={estilos.textoBoton}>📄 Generar PDF</Text>
+            <Text style={estilos.textoBoton}>📄 PDF</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -446,6 +469,20 @@ const estilos = StyleSheet.create({
     borderTopColor: '#e5e7eb',
     flexDirection: 'row',
     gap: 10,
+  },
+  botonFactura: {
+    flex: 1,
+    backgroundColor: '#10b981',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+  },
+  botonBoleta: {
+    flex: 1,
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
   },
   botonEditar: {
     flex: 1,

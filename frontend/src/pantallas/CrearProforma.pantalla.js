@@ -18,6 +18,7 @@ import { convertirNumeroALetras } from '../utilidades/convertirNumeroALetras';
 import { crearProductoCatalogo } from '../servicios/supabase.catalogo.servicio';
 import { obtenerConfiguracion } from '../servicios/supabase.configuracion.servicio';
 import { obtenerSiguienteNumeroProforma } from '../servicios/supabase.contador.servicio';
+import { obtenerFechaActual } from '../utilidades/formatearFecha';
 import BuscadorProductos from '../componentes/BuscadorProductos';
 import VistaPreviaPDF from '../componentes/VistaPreviaPDF';
 
@@ -218,8 +219,8 @@ export default function CrearProformaPantalla({ navigation }) {
 
   // Guardar producto al catálogo
   const guardarAlCatalogo = async () => {
-    if (!nombreProducto.trim() || !descripcion.trim() || !precio || !imagenUri) {
-      Alert.alert('Error', 'Completa nombre, descripción, precio e imagen para guardar al catálogo');
+    if (!nombreProducto.trim() || !descripcion.trim() || !precio) {
+      Alert.alert('Error', 'Completa nombre, descripción y precio para guardar al catálogo');
       return;
     }
 
@@ -231,8 +232,18 @@ export default function CrearProformaPantalla({ navigation }) {
 
     setCargando(true);
     try {
-      // Subir imagen a Cloudinary
-      const imagenUrl = await subirImagen(imagenUri);
+      // TEMPORAL: Usar URL de placeholder si no hay imagen
+      let imagenUrl = 'https://via.placeholder.com/150';
+      
+      if (imagenUri) {
+        try {
+          // Intentar subir imagen
+          imagenUrl = await subirImagen(imagenUri);
+        } catch (errorImagen) {
+          console.error('Error al subir imagen:', errorImagen);
+          Alert.alert('Advertencia', 'No se pudo subir la imagen, se usará placeholder');
+        }
+      }
 
       // Guardar producto
       await crearProductoCatalogo({
@@ -252,7 +263,7 @@ export default function CrearProformaPantalla({ navigation }) {
       setImagenUri(null);
     } catch (error) {
       console.error('Error:', error);
-      Alert.alert('Error', error.error || 'No se pudo guardar el producto');
+      Alert.alert('Error', error.error || error.message || 'No se pudo guardar el producto');
     } finally {
       setCargando(false);
     }
@@ -338,7 +349,7 @@ export default function CrearProformaPantalla({ navigation }) {
       const proformaTemp = {
         id: 'PREVIEW',
         numero_proforma: '00000',
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: obtenerFechaActual(),
         total,
         total_letras: totalLetras,
         descripcion_servicio: descripcionServicio.trim(),
@@ -411,13 +422,14 @@ export default function CrearProformaPantalla({ navigation }) {
       const numeroProforma = await obtenerSiguienteNumeroProforma();
 
       // Calcular fecha de validez (5 días desde hoy)
-      const fechaValidez = new Date();
+      const fechaHoy = new Date();
+      const fechaValidez = new Date(fechaHoy);
       fechaValidez.setDate(fechaValidez.getDate() + 5);
-      const fechaValidezStr = fechaValidez.toISOString().split('T')[0];
+      const fechaValidezStr = `${fechaValidez.getFullYear()}-${String(fechaValidez.getMonth() + 1).padStart(2, '0')}-${String(fechaValidez.getDate()).padStart(2, '0')}`;
 
       // Preparar datos
       const proformaData = {
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: obtenerFechaActual(),
         total,
         total_letras: totalLetras,
         numero_proforma: numeroProforma,

@@ -1,6 +1,7 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { formatearFecha } from '../utilidades/formatearFecha';
 
 /**
  * Generar HTML para el PDF de la proforma (Estilo BRADATEC)
@@ -41,18 +42,10 @@ export const generarHTMLProforma = (proforma, detalles, nombreCliente = 'CLIENTE
     return fila;
   }).join('');
 
-  const fechaFormateada = new Date(proforma.fecha).toLocaleDateString('es-PE', { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric' 
-  });
+  const fechaFormateada = formatearFecha(proforma.fecha);
 
   const fechaValidezFormateada = proforma.fecha_validez ? 
-    new Date(proforma.fecha_validez).toLocaleDateString('es-PE', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
-    }) : null;
+    formatearFecha(proforma.fecha_validez) : null;
 
   return `
     <!DOCTYPE html>
@@ -461,9 +454,9 @@ export const generarPDF = async (proforma, detalles, nombreCliente = 'CLIENTE', 
 
     const html = generarHTMLProforma(proforma, detalles, nombreCliente, configConLogosBase64);
     
-    // Generar nombre de archivo personalizado
-    const fecha = new Date(proforma.fecha);
-    const fechaFormato = `${fecha.getDate().toString().padStart(2, '0')}-${(fecha.getMonth() + 1).toString().padStart(2, '0')}-${fecha.getFullYear()}`;
+    // Generar nombre de archivo personalizado con fecha actual de generación
+    const fechaGeneracion = new Date();
+    const fechaFormato = `${fechaGeneracion.getDate().toString().padStart(2, '0')}-${(fechaGeneracion.getMonth() + 1).toString().padStart(2, '0')}-${fechaGeneracion.getFullYear()}`;
     const nombreClienteLimpio = nombreCliente
       .replace(/[^a-zA-Z0-9\s]/g, '') // Eliminar caracteres especiales
       .replace(/\s+/g, '_') // Reemplazar espacios con guiones bajos
