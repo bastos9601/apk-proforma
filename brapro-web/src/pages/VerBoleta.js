@@ -15,6 +15,7 @@ function VerBoleta() {
 
   useEffect(() => {
     cargarDatos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const cargarDatos = async () => {
