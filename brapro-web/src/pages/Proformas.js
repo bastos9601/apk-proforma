@@ -157,39 +157,79 @@ function Proformas() {
                     <td>{new Date(proforma.fecha).toLocaleDateString()}</td>
                     <td>S/ {proforma.total.toFixed(2)}</td>
                     <td>
-                      <select
-                        value={proforma.estado || 'pendiente'}
-                        onChange={(e) => cambiarEstado(proforma.id, e.target.value)}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '6px',
-                          border: '2px solid #e5e7eb',
-                          fontSize: '14px',
-                          cursor: 'pointer',
-                          fontWeight: '600'
-                        }}
-                      >
-                        <option value="pendiente">⏳ Pendiente</option>
-                        <option value="enviada">📤 Enviada</option>
-                        <option value="aprobada">✅ Aprobada</option>
-                        <option value="rechazada">❌ Rechazada</option>
-                        <option value="facturada">🎉 Facturada</option>
-                      </select>
+                      <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                        <select
+                          value={proforma.estado || 'pendiente'}
+                          onChange={(e) => cambiarEstado(proforma.id, e.target.value)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '2px solid #e5e7eb',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            fontWeight: '600'
+                          }}
+                        >
+                          <option value="pendiente">⏳ Pendiente</option>
+                          <option value="enviada">📤 Enviada</option>
+                          <option value="aprobada">✅ Aprobada</option>
+                          <option value="rechazada">❌ Rechazada</option>
+                          <option value="facturada">🎉 Facturada</option>
+                        </select>
+                        {proforma.estado === 'facturada' && proforma.tipo_documento && (
+                          <span style={{
+                            fontSize: '11px',
+                            color: '#6b7280',
+                            fontWeight: '600',
+                            padding: '2px 8px',
+                            background: proforma.tipo_documento === 'factura' ? '#dbeafe' : '#fef3c7',
+                            borderRadius: '4px',
+                            textAlign: 'center'
+                          }}>
+                            {proforma.tipo_documento === 'factura' ? '🧾 Factura' : '📄 Boleta'}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>
-                      <a
-                        href={`/ver-proforma/${proforma.id}`}
-                        className="btn btn-secondary btn-sm"
-                        style={{marginRight: '8px'}}
-                      >
-                        👁️ Ver
-                      </a>
-                      <button
-                        onClick={() => eliminarProforma(proforma.id)}
-                        className="btn btn-danger btn-sm"
-                      >
-                        🗑️
-                      </button>
+                      <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                        <a
+                          href={`/ver-proforma/${proforma.id}`}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          👁️ Ver
+                        </a>
+                        <a
+                          href={`/editar-proforma/${proforma.id}`}
+                          className="btn btn-info btn-sm"
+                        >
+                          ✏️ Editar
+                        </a>
+                        {proforma.estado === 'aprobada' && (
+                          <>
+                            <a
+                              href={`/crear-factura/${proforma.id}`}
+                              className="btn btn-primary btn-sm"
+                              title="Crear Factura"
+                            >
+                              🧾 Factura
+                            </a>
+                            <a
+                              href={`/crear-boleta/${proforma.id}`}
+                              className="btn btn-info btn-sm"
+                              title="Crear Boleta"
+                            >
+                              📄 Boleta
+                            </a>
+                          </>
+                        )}
+                        <button
+                          onClick={() => eliminarProforma(proforma.id)}
+                          className="btn btn-danger btn-sm"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

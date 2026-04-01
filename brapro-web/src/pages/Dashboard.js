@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../config/supabase';
+import { obtenerEstadisticasFacturas } from '../utils/facturaService';
+import { obtenerEstadisticasBoletas } from '../utils/boletaService';
 import Navbar from '../components/Navbar';
 import './Dashboard.css';
 
@@ -10,6 +12,8 @@ function Dashboard() {
     totalProductos: 0,
     pendientes: 0,
     aprobadas: 0,
+    totalFacturas: 0,
+    totalBoletas: 0,
     usuario: ''
   });
   const [loading, setLoading] = useState(true);
@@ -48,11 +52,19 @@ function Dashboard() {
         .eq('usuario_id', user.id)
         .eq('estado', 'aprobada');
 
+      // Obtener estadísticas de facturas y boletas
+      const [estadisticasFacturas, estadisticasBoletas] = await Promise.all([
+        obtenerEstadisticasFacturas().catch(() => ({ total_facturas: 0 })),
+        obtenerEstadisticasBoletas().catch(() => ({ total_boletas: 0 })),
+      ]);
+
       setStats({
         totalProformas: proformasCount || 0,
         totalProductos: productosCount || 0,
         pendientes: pendientesCount || 0,
         aprobadas: aprobadasCount || 0,
+        totalFacturas: estadisticasFacturas.total_facturas || 0,
+        totalBoletas: estadisticasBoletas.total_boletas || 0,
         usuario: user.email
       });
     } catch (err) {
@@ -114,6 +126,22 @@ function Dashboard() {
               <p>Productos en Catálogo</p>
             </div>
           </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">🧾</div>
+            <div className="stat-info">
+              <h3>{stats.totalFacturas}</h3>
+              <p>Facturas</p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">📄</div>
+            <div className="stat-info">
+              <h3>{stats.totalBoletas}</h3>
+              <p>Boletas</p>
+            </div>
+          </div>
         </div>
 
         <div className="actions-grid">
@@ -121,24 +149,6 @@ function Dashboard() {
             <div className="action-icon">➕</div>
             <h3>Nueva Proforma</h3>
             <p>Crear una nueva proforma</p>
-          </Link>
-
-          <Link to="/proformas" className="action-card">
-            <div className="action-icon">📋</div>
-            <h3>Ver Proformas</h3>
-            <p>Gestionar proformas existentes</p>
-          </Link>
-
-          <Link to="/catalogo" className="action-card">
-            <div className="action-icon">🛍️</div>
-            <h3>Catálogo</h3>
-            <p>Administrar productos</p>
-          </Link>
-
-          <Link to="/configuracion" className="action-card">
-            <div className="action-icon">⚙️</div>
-            <h3>Configuración</h3>
-            <p>Ajustes de la empresa</p>
           </Link>
         </div>
       </div>

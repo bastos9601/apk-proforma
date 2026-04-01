@@ -39,3 +39,6 @@ build/
 # Archivos temporales
 tmp/
 temp/
+
+# Local Netlify folder
+.netlify

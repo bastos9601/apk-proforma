@@ -25,6 +25,12 @@ function Navbar() {
           <Link to="/proformas" className="navbar-link">
             📄 Proformas
           </Link>
+          <Link to="/facturas" className="navbar-link">
+            🧾 Facturas
+          </Link>
+          <Link to="/boletas" className="navbar-link">
+            📄 Boletas
+          </Link>
           <Link to="/catalogo" className="navbar-link">
             📦 Catálogo
           </Link>

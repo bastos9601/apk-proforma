@@ -6,7 +6,14 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Proformas from './pages/Proformas';
 import CrearProforma from './pages/CrearProforma';
+import EditarProforma from './pages/EditarProforma';
 import VerProforma from './pages/VerProforma';
+import Facturas from './pages/Facturas';
+import CrearFactura from './pages/CrearFactura';
+import VerFactura from './pages/VerFactura';
+import Boletas from './pages/Boletas';
+import CrearBoleta from './pages/CrearBoleta';
+import VerBoleta from './pages/VerBoleta';
 import Catalogo from './pages/Catalogo';
 import Configuracion from './pages/Configuracion';
 import './App.css';
@@ -65,6 +72,10 @@ function App() {
           element={session ? <CrearProforma /> : <Navigate to="/login" />}
         />
         <Route
+          path="/editar-proforma/:id"
+          element={session ? <EditarProforma /> : <Navigate to="/login" />}
+        />
+        <Route
           path="/ver-proforma/:id"
           element={session ? <VerProforma /> : <Navigate to="/login" />}
         />
@@ -75,6 +86,30 @@ function App() {
         <Route
           path="/configuracion"
           element={session ? <Configuracion /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/facturas"
+          element={session ? <Facturas /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/crear-factura/:proformaId"
+          element={session ? <CrearFactura /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/ver-factura/:id"
+          element={session ? <VerFactura /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/boletas"
+          element={session ? <Boletas /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/crear-boleta/:proformaId"
+          element={session ? <CrearBoleta /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/ver-boleta/:id"
+          element={session ? <VerBoleta /> : <Navigate to="/login" />}
         />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
